@@ -729,7 +729,6 @@ add_custom_target(check-junit
         --reports-dir=unit-tests
         --select-package=com.amazon.corretto.crypto.provider.test
         --exclude-package=com.amazon.corretto.crypto.provider.test.integration
-        --exclude-classname=com.amazon.corretto.crypto.provider.test.SecurityManagerTest
         --exclude-classname=com.amazon.corretto.crypto.provider.test.FipsStatusTest
 
     DEPENDS accp-jar tests-jar)
@@ -742,15 +741,6 @@ if (DEFINED SINGLE_TEST)
 
         DEPENDS accp-jar tests-jar)
 endif() # SINGLE_TEST
-
-add_custom_target(check-junit-SecurityManager
-    COMMAND ${TEST_JAVA_EXECUTABLE}
-        ${TEST_RUNNER_ARGUMENTS}
-        --select-class=com.amazon.corretto.crypto.provider.test.AesTest # Force loading ciphers
-        --select-class=com.amazon.corretto.crypto.provider.test.SHA1Test # Force loading digests
-        --select-class=com.amazon.corretto.crypto.provider.test.SecurityManagerTest
-
-    DEPENDS accp-jar tests-jar)
 
 add_custom_target(check-junit-FipsStatus
     COMMAND ${TEST_JAVA_EXECUTABLE}
@@ -767,7 +757,6 @@ add_custom_target(check-with-jni-flag
         ${TEST_RUNNER_ARGUMENTS}
         --select-package=com.amazon.corretto.crypto.provider.test
         --exclude-package=com.amazon.corretto.crypto.provider.test.integration
-        --exclude-classname=com.amazon.corretto.crypto.provider.test.SecurityManagerTest
 
     DEPENDS accp-jar tests-jar)
 
@@ -809,7 +798,6 @@ add_custom_target(check-junit-extra-checks
         --select-package=com.amazon.corretto.crypto.provider.test
         --exclude-package=com.amazon.corretto.crypto.provider.test.integration
         --exclude-classname=com.amazon.corretto.crypto.provider.test.FipsStatusTest
-        --exclude-classname=com.amazon.corretto.crypto.provider.test.SecurityManagerTest
 
     DEPENDS accp-jar tests-jar)
 
@@ -910,7 +898,6 @@ set(check_targets
     check-install-via-properties
     check-install-via-properties-with-debug
     check-junit
-    check-junit-SecurityManager
     check-external-lib
     check-junit-AesLazy
     check-junit-AesEager
