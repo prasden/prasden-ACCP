@@ -273,6 +273,8 @@ else()
 endif()
 
 
+# add comment to check pr
+
 # All subsequent Java targets are compatible with Java 8
 set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options --release 8)
 
