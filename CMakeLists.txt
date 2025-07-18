@@ -165,8 +165,6 @@ add_custom_command(
 #       its use on CMake version. If the feature is not available, you may need
 #       to `touch CMakeLists.txt` after adding/removing files for them to be
 #       detected by CMake.
-
-
 if (${CMAKE_VERSION} VERSION_LESS "3.12.0")
     file(GLOB_RECURSE ACCP_SRC "src/com/amazon/corretto/crypto/provider/*.java")
     file(GLOB_RECURSE ACCP_UTILS_SRC "src/com/amazon/corretto/crypto/utils/*.java")
@@ -181,8 +179,6 @@ else()
     endif()
 endif()
 
-
-
 if(TARGET_JDK_VERSION LESS 17)
     set(KEM_SUPPORTED FALSE)
     message(STATUS "Target JDK version ${TARGET_JDK_VERSION} - KEM will not be supported")
@@ -191,17 +187,13 @@ else()
     message(STATUS "Target JDK version ${TARGET_JDK_VERSION} - KEM will be supported")
 endif()
 
-
-
 set(ACCP_SRC ${ACCP_SRC} ${ACCP_UTILS_SRC} ${GENERATED_JAVA_SRC})
 set(BASE_JAVA_COMPILE_FLAGS ${CMAKE_JAVA_COMPILE_FLAGS} -h "${JNI_HEADER_DIR}")
-
 
 if(TARGET_JDK_VERSION EQUAL 8)
     message(STATUS "Original Target JDK version was set to 8, upgrading to 9 for module support")
     set(TARGET_JDK_VERSION 9)
 endif()
-
 
 # Java targets defined here are compiled based on target JDK version
 if (KEM_SUPPORTED AND TARGET_JDK_VERSION EQUAL 17 AND BUILD_JDK_VERSION GREATER_EQUAL 21)
@@ -211,10 +203,8 @@ else()
     message(STATUS "Using JDK ${TARGET_JDK_VERSION} compilation flags with KEM support")
 endif()
 
-
 set(ACCP_JAR "${CMAKE_CURRENT_BINARY_DIR}/AmazonCorrettoCryptoProvider.jar")
 set(ACCP_JAR_SOURCE "${CMAKE_CURRENT_BINARY_DIR}/AmazonCorrettoCryptoProvider-sources.jar")
-
 add_jar(
     module-jar
     SOURCES ${ACCP_SRC}
@@ -271,9 +261,6 @@ else()
         DEPENDS code-only-jar module-jar ${VERSION_PROPERTIES_FILE}
     )
 endif()
-
-
-# add comment to check pr
 
 # All subsequent Java targets are compatible with Java 8
 set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options --release 8)
