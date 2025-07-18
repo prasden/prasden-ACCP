@@ -119,7 +119,7 @@ def getClangFormatVersion() {
 }
 
 ext.targetMinJdk = System.getProperty('targetMinJdk') ?: project.findProperty('targetMinJdk') ?: '8'
-ext.buildJdk = System.getProperty("java.version").split('\\.')[0] as Integerho
+ext.buildJdk = System.getProperty("java.version").split('\\.')[0] as Integer
 def awslcSrcPath = "${projectDir}/aws-lc/"
 
 // Check for user inputted AWS-LC source directory. 

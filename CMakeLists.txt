@@ -170,28 +170,34 @@ if (${CMAKE_VERSION} VERSION_LESS "3.12.0")
     file(GLOB_RECURSE ACCP_UTILS_SRC "src/com/amazon/corretto/crypto/utils/*.java")
     if(NOT KEM_SUPPORTED)
         list(FILTER ACCP_SRC EXCLUDE REGEX ".*/jdk17plus/.*")
+    else()
+        # Check if jdk17plus directory exists before including it
+        if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/com/amazon/corretto/crypto/provider/jdk17plus")
+            list(FILTER ACCP_SRC EXCLUDE REGEX ".*/jdk17plus/.*")
+        endif()
     endif()
 else()
     file(GLOB_RECURSE ACCP_SRC CONFIGURE_DEPENDS "src/com/amazon/corretto/crypto/provider/*.java")
     file(GLOB_RECURSE ACCP_UTILS_SRC CONFIGURE_DEPENDS "src/com/amazon/corretto/crypto/utils/*.java")
     if(NOT KEM_SUPPORTED)
         list(FILTER ACCP_SRC EXCLUDE REGEX ".*/jdk17plus/.*")
+    else()
+        # Check if jdk17plus directory exists before including it
+        if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/com/amazon/corretto/crypto/provider/jdk17plus")
+            list(FILTER ACCP_SRC EXCLUDE REGEX ".*/jdk17plus/.*")
+        endif()
     endif()
 endif()
 
 if(TARGET_JDK_VERSION LESS 17)
     set(KEM_SUPPORTED FALSE)
-    message(STATUS "Target JDK version ${TARGET_JDK_VERSION} - KEM will not be supported")
 else()
     set(KEM_SUPPORTED TRUE)
-    message(STATUS "Target JDK version ${TARGET_JDK_VERSION} - KEM will be supported")
 endif()
-
 set(ACCP_SRC ${ACCP_SRC} ${ACCP_UTILS_SRC} ${GENERATED_JAVA_SRC})
 set(BASE_JAVA_COMPILE_FLAGS ${CMAKE_JAVA_COMPILE_FLAGS} -h "${JNI_HEADER_DIR}")
 
 if(TARGET_JDK_VERSION EQUAL 8)
-    message(STATUS "Original Target JDK version was set to 8, upgrading to 9 for module support")
     set(TARGET_JDK_VERSION 9)
 endif()
 
@@ -224,6 +230,7 @@ create_javadoc(
 
 add_custom_target(javadoc DEPENDS ${JNI_HEADER_DIR}/generated-headers.h ${GENERATED_JAVA_SRC} AmazonCorrettoCryptoProvider_javadoc)
 
+set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options --release 8)
 
 # Add a JAR target. We can't add resources here (as discussed below) so we'll
 # build a temporary one first.
@@ -264,7 +271,6 @@ endif()
 
 # All subsequent Java targets are compatible with Java 8
 set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options --release 8)
-
 add_custom_target(accp-jar ALL DEPENDS ${ACCP_JAR})
 
 # Attach the JAR_FILE property to our custom jar target; this allows add_jar
