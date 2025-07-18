@@ -276,10 +276,6 @@ endif()
 # All subsequent Java targets are compatible with Java 8
 set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options --release 8)
 
-
-
-
-
 add_custom_target(accp-jar ALL DEPENDS ${ACCP_JAR})
 
 # Attach the JAR_FILE property to our custom jar target; this allows add_jar

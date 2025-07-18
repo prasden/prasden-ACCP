@@ -28,7 +28,6 @@ if (ext.isExperimentalFips || !ext.isFips) {
 
 }
 
-
 // Check for user inputted git version ID.
 if (System.properties["AWSLC_GITVERSION"]) {
     ext.awsLcGitVersionId = System.properties["AWSLC_GITVERSION"]
