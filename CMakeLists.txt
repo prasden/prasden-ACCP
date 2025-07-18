@@ -28,6 +28,7 @@ else()
   set(Java_VERSION_MINOR ${JAVA_MINOR_VERSION})
 endif()
 
+
 find_package(JNI REQUIRED)
 include(FindOpenSSL)
 
@@ -164,19 +165,52 @@ add_custom_command(
 #       its use on CMake version. If the feature is not available, you may need
 #       to `touch CMakeLists.txt` after adding/removing files for them to be
 #       detected by CMake.
+
+
 if (${CMAKE_VERSION} VERSION_LESS "3.12.0")
     file(GLOB_RECURSE ACCP_SRC "src/com/amazon/corretto/crypto/provider/*.java")
     file(GLOB_RECURSE ACCP_UTILS_SRC "src/com/amazon/corretto/crypto/utils/*.java")
+    if(NOT KEM_SUPPORTED)
+        list(FILTER ACCP_SRC EXCLUDE REGEX ".*/jdk17plus/.*")
+    endif()
 else()
     file(GLOB_RECURSE ACCP_SRC CONFIGURE_DEPENDS "src/com/amazon/corretto/crypto/provider/*.java")
     file(GLOB_RECURSE ACCP_UTILS_SRC CONFIGURE_DEPENDS "src/com/amazon/corretto/crypto/utils/*.java")
+    if(NOT KEM_SUPPORTED)
+        list(FILTER ACCP_SRC EXCLUDE REGEX ".*/jdk17plus/.*")
+    endif()
 endif()
+
+
+
+if(TARGET_JDK_VERSION LESS 17)
+    set(KEM_SUPPORTED FALSE)
+    message(STATUS "Target JDK version ${TARGET_JDK_VERSION} - KEM will not be supported")
+else()
+    set(KEM_SUPPORTED TRUE)
+    message(STATUS "Target JDK version ${TARGET_JDK_VERSION} - KEM will be supported")
+endif()
+
+
+
 set(ACCP_SRC ${ACCP_SRC} ${ACCP_UTILS_SRC} ${GENERATED_JAVA_SRC})
+set(BASE_JAVA_COMPILE_FLAGS ${CMAKE_JAVA_COMPILE_FLAGS} -h "${JNI_HEADER_DIR}")
 
-set(BASE_JAVA_COMPILE_FLAGS ${CMAKE_JAVA_COMPILE_FLAGS} -h "${JNI_HEADER_DIR}" -Werror)
 
-# Java targets defined here are compiled for Java supporting modules
-set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint --release 9)
+if(TARGET_JDK_VERSION EQUAL 8)
+    message(STATUS "Original Target JDK version was set to 8, upgrading to 9 for module support")
+    set(TARGET_JDK_VERSION 9)
+endif()
+
+
+# Java targets defined here are compiled based on target JDK version
+if (KEM_SUPPORTED AND TARGET_JDK_VERSION EQUAL 17 AND BUILD_JDK_VERSION GREATER_EQUAL 21)
+    set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint "-Xlint:-removal" "-Xlint:-serial" -source ${TARGET_JDK_VERSION} -target ${TARGET_JDK_VERSION})
+else()
+    set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint "-Xlint:-removal" "-Xlint:-serial" --release ${TARGET_JDK_VERSION})
+    message(STATUS "Using JDK ${TARGET_JDK_VERSION} compilation flags with KEM support")
+endif()
+
 
 set(ACCP_JAR "${CMAKE_CURRENT_BINARY_DIR}/AmazonCorrettoCryptoProvider.jar")
 set(ACCP_JAR_SOURCE "${CMAKE_CURRENT_BINARY_DIR}/AmazonCorrettoCryptoProvider-sources.jar")
@@ -200,12 +234,9 @@ create_javadoc(
 
 add_custom_target(javadoc DEPENDS ${JNI_HEADER_DIR}/generated-headers.h ${GENERATED_JAVA_SRC} AmazonCorrettoCryptoProvider_javadoc)
 
-# All subsequent Java targets are compatible with Java 8
-set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options --release 8)
 
 # Add a JAR target. We can't add resources here (as discussed below) so we'll
 # build a temporary one first.
-
 add_jar(
     code-only-jar
     SOURCES ${ACCP_SRC}
@@ -240,6 +271,12 @@ else()
         DEPENDS code-only-jar module-jar ${VERSION_PROPERTIES_FILE}
     )
 endif()
+
+
+# add comment to check pr
+
+# All subsequent Java targets are compatible with Java 8
+set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options --release 8)
 
 add_custom_target(accp-jar ALL DEPENDS ${ACCP_JAR})
 
@@ -606,8 +643,14 @@ link_with_openssl(amazonCorrettoCryptoProvider)
 #       detected by CMake.
 if (${CMAKE_VERSION} VERSION_LESS "3.12.0")
     file(GLOB_RECURSE ACCP_TEST_SRC "tst/com/amazon/corretto/crypto/provider/*.java")
+    if(NOT KEM_SUPPORTED)
+        list(FILTER ACCP_TEST_SRC EXCLUDE REGEX ".*/jdk17plus/.*")
+    endif()
 else()
     file(GLOB_RECURSE ACCP_TEST_SRC CONFIGURE_DEPENDS "tst/com/amazon/corretto/crypto/provider/*.java")
+    if(NOT KEM_SUPPORTED)
+        list(FILTER ACCP_TEST_SRC EXCLUDE REGEX ".*/jdk17plus/.*")
+    endif()
 endif()
 
 

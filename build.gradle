@@ -25,6 +25,7 @@ if (ext.isExperimentalFips || !ext.isFips) {
     ext.awsLcGitVersionId = ext.awsLcMainTag
 } else {
     ext.awsLcGitVersionId = ext.awsLcFipsTag
+
 }
 
 // Check for user inputted git version ID.
@@ -117,6 +118,9 @@ def getClangFormatVersion() {
         return ''
     }
 }
+
+ext.targetMinJdk = System.getProperty('targetMinJdk') ?: project.findProperty('targetMinJdk') ?: '8'
+ext.buildJdk = System.getProperty("java.version").split('\\.')[0] as Integer
 
 def awslcSrcPath = "${projectDir}/aws-lc/"
 
@@ -334,6 +338,8 @@ task executeCmake(type: Exec) {
     args "-DTEST_RUNNER_JAR=${configurations.testRunner.singleFile}"
     args "-DCMAKE_VERBOSE_MAKEFILE:BOOL=${isVerbose ? 'ON' : 'OFF'}"
     args "-DAWS_LC_VERSION_STRING=" + awsLcGitVersionId
+    args "-DTARGET_JDK_VERSION=" + targetMinJdk
+    args "-DBUILD_JDK_VERSION=" + buildJdk
     if (isFips) {
         args "-DFIPS=ON"
     }
