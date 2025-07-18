@@ -28,16 +28,6 @@ else()
   set(Java_VERSION_MINOR ${JAVA_MINOR_VERSION})
 endif()
 
-execute_process(
-    COMMAND ${Java_JAVAC_EXECUTABLE} --version
-    OUTPUT_VARIABLE JAVAC_VERSION_OUTPUT
-    ERROR_VARIABLE JAVAC_VERSION_OUTPUT
-    RESULT_VARIABLE JAVAC_VERSION_RESULT
-)
-
-
-
-
 
 find_package(JNI REQUIRED)
 include(FindOpenSSL)
@@ -175,6 +165,8 @@ add_custom_command(
 #       its use on CMake version. If the feature is not available, you may need
 #       to `touch CMakeLists.txt` after adding/removing files for them to be
 #       detected by CMake.
+
+
 if (${CMAKE_VERSION} VERSION_LESS "3.12.0")
     file(GLOB_RECURSE ACCP_SRC "src/com/amazon/corretto/crypto/provider/*.java")
     file(GLOB_RECURSE ACCP_UTILS_SRC "src/com/amazon/corretto/crypto/utils/*.java")
@@ -189,13 +181,8 @@ else()
     endif()
 endif()
 
-# if(NOT DEFINED TARGET_JDK_VERSION)
-#     set(TARGET_JDK_VERSION 8)
-#     message(STATUS "Target JDK version set to: ${TARGET_JDK_VERSION}")
-#     message(STATUS "TARGET_JDK_VERSION not defined, defaulting to: ${BUILD_JDK_VERSION}")
-# endif()
 
-# Determine KEM support based on target JDK version
+
 if(TARGET_JDK_VERSION LESS 17)
     set(KEM_SUPPORTED FALSE)
     message(STATUS "Target JDK version ${TARGET_JDK_VERSION} - KEM will not be supported")
@@ -207,13 +194,9 @@ endif()
 
 
 set(ACCP_SRC ${ACCP_SRC} ${ACCP_UTILS_SRC} ${GENERATED_JAVA_SRC})
-
-# Set base Java compile flags without -Werror to avoid build issues
 set(BASE_JAVA_COMPILE_FLAGS ${CMAKE_JAVA_COMPILE_FLAGS} -h "${JNI_HEADER_DIR}")
 
-# Legacy version when not defined
 
-# If target is 8, set it to 9 for module support and support 8 subsequently 
 if(TARGET_JDK_VERSION EQUAL 8)
     message(STATUS "Original Target JDK version was set to 8, upgrading to 9 for module support")
     set(TARGET_JDK_VERSION 9)
@@ -254,11 +237,6 @@ add_custom_target(javadoc DEPENDS ${JNI_HEADER_DIR}/generated-headers.h ${GENERA
 
 # Add a JAR target. We can't add resources here (as discussed below) so we'll
 # build a temporary one first.
-
-# All subsequent Java targets are compatible with Java 8
-set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options --release 8)
-
-
 add_jar(
     code-only-jar
     SOURCES ${ACCP_SRC}
@@ -293,6 +271,14 @@ else()
         DEPENDS code-only-jar module-jar ${VERSION_PROPERTIES_FILE}
     )
 endif()
+
+
+# All subsequent Java targets are compatible with Java 8
+set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options --release 8)
+
+
+
+
 
 add_custom_target(accp-jar ALL DEPENDS ${ACCP_JAR})
 
@@ -659,8 +645,14 @@ link_with_openssl(amazonCorrettoCryptoProvider)
 #       detected by CMake.
 if (${CMAKE_VERSION} VERSION_LESS "3.12.0")
     file(GLOB_RECURSE ACCP_TEST_SRC "tst/com/amazon/corretto/crypto/provider/*.java")
+    if(NOT KEM_SUPPORTED)
+        list(FILTER ACCP_TEST_SRC EXCLUDE REGEX ".*/jdk17plus/.*")
+    endif()
 else()
     file(GLOB_RECURSE ACCP_TEST_SRC CONFIGURE_DEPENDS "tst/com/amazon/corretto/crypto/provider/*.java")
+    if(NOT KEM_SUPPORTED)
+        list(FILTER ACCP_TEST_SRC EXCLUDE REGEX ".*/jdk17plus/.*")
+    endif()
 endif()
 
 

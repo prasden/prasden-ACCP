@@ -121,12 +121,7 @@ def getClangFormatVersion() {
 }
 
 ext.targetMinJdk = System.getProperty('targetMinJdk') ?: project.findProperty('targetMinJdk') ?: '8'
-
 ext.buildJdk = System.getProperty("java.version").split('\\.')[0] as Integer
-
-
-
-
 
 def awslcSrcPath = "${projectDir}/aws-lc/"
 
@@ -386,8 +381,6 @@ task build_objects {
     dependsOn executeCmake
     inputs.file("${buildDir}/cmake/Makefile")
     outputs.file("${buildDir}/cmake/AmazonCorrettoCryptoProvider.jar")
-    println "Building on JDK ${buildJdk}"
-
 
     doLast {
       exec {
