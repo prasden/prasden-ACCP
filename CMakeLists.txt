@@ -28,7 +28,6 @@ else()
   set(Java_VERSION_MINOR ${JAVA_MINOR_VERSION})
 endif()
 
-
 find_package(JNI REQUIRED)
 include(FindOpenSSL)
 
@@ -211,6 +210,7 @@ endif()
 
 set(ACCP_JAR "${CMAKE_CURRENT_BINARY_DIR}/AmazonCorrettoCryptoProvider.jar")
 set(ACCP_JAR_SOURCE "${CMAKE_CURRENT_BINARY_DIR}/AmazonCorrettoCryptoProvider-sources.jar")
+
 add_jar(
     module-jar
     SOURCES ${ACCP_SRC}
@@ -234,6 +234,7 @@ set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options --releas
 
 # Add a JAR target. We can't add resources here (as discussed below) so we'll
 # build a temporary one first.
+
 add_jar(
     code-only-jar
     SOURCES ${ACCP_SRC}
