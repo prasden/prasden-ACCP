@@ -170,7 +170,6 @@ if (${CMAKE_VERSION} VERSION_LESS "3.12.0")
     if(NOT KEM_SUPPORTED)
         list(FILTER ACCP_SRC EXCLUDE REGEX ".*/jdk17plus/.*")
     else()
-        # Check if jdk17plus directory exists before including it
         if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/com/amazon/corretto/crypto/provider/jdk17plus")
             list(FILTER ACCP_SRC EXCLUDE REGEX ".*/jdk17plus/.*")
         endif()
@@ -198,15 +197,13 @@ set(ACCP_SRC ${ACCP_SRC} ${ACCP_UTILS_SRC} ${GENERATED_JAVA_SRC})
 set(BASE_JAVA_COMPILE_FLAGS ${CMAKE_JAVA_COMPILE_FLAGS} -h "${JNI_HEADER_DIR}")
 
 # Define a function to set Java compilation flags based on JDK version and KEM support
-function(set_java_compile_flags)
+macro(set_java_compile_flags)
     if (KEM_SUPPORTED AND TARGET_JDK_VERSION EQUAL 17 AND BUILD_JDK_VERSION GREATER_EQUAL 21)
-        set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options -source ${TARGET_JDK_VERSION} -target ${TARGET_JDK_VERSION} PARENT_SCOPE)
-        message(STATUS "Using JDK ${TARGET_JDK_VERSION} compilation flags with special KEM support mode for JDK17")
+        set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options -source ${TARGET_JDK_VERSION} -target ${TARGET_JDK_VERSION})
     else()
-        set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options --release ${TARGET_JDK_VERSION} PARENT_SCOPE)
-        message(STATUS "Using JDK ${TARGET_JDK_VERSION} standard compilation flags")
+        set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options --release ${TARGET_JDK_VERSION})
     endif()
-endfunction()
+endmacro()
 
 
 # Java targets defined here are compiled for Java supporting modules
@@ -280,7 +277,7 @@ else()
 endif()
 
 # All subsequent Java targets are compatible with Java 8
-set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options --release 8)
+# set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options --release 8)
 add_custom_target(accp-jar ALL DEPENDS ${ACCP_JAR})
 
 # Attach the JAR_FILE property to our custom jar target; this allows add_jar
