@@ -188,24 +188,32 @@ else()
     endif()
 endif()
 
-if(TARGET_JDK_VERSION LESS 17)
+if((TARGET_JDK_VERSION VERSION_LESS "17") OR ((TARGET_JDK_VERSION VERSION_GREATER_EQUAL "18") AND (TARGET_JDK_VERSION VERSION_LESS "21")))
     set(KEM_SUPPORTED FALSE)
 else()
     set(KEM_SUPPORTED TRUE)
 endif()
+
 set(ACCP_SRC ${ACCP_SRC} ${ACCP_UTILS_SRC} ${GENERATED_JAVA_SRC})
 set(BASE_JAVA_COMPILE_FLAGS ${CMAKE_JAVA_COMPILE_FLAGS} -h "${JNI_HEADER_DIR}")
 
+# Define a function to set Java compilation flags based on JDK version and KEM support
+function(set_java_compile_flags)
+    if (KEM_SUPPORTED AND TARGET_JDK_VERSION EQUAL 17 AND BUILD_JDK_VERSION GREATER_EQUAL 21)
+        set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options -source ${TARGET_JDK_VERSION} -target ${TARGET_JDK_VERSION} PARENT_SCOPE)
+        message(STATUS "Using JDK ${TARGET_JDK_VERSION} compilation flags with special KEM support mode for JDK17")
+    else()
+        set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options --release ${TARGET_JDK_VERSION} PARENT_SCOPE)
+        message(STATUS "Using JDK ${TARGET_JDK_VERSION} standard compilation flags")
+    endif()
+endfunction()
+
+
+# Java targets defined here are compiled for Java supporting modules
 if(TARGET_JDK_VERSION EQUAL 8)
     set(TARGET_JDK_VERSION 9)
-endif()
-
-# Java targets defined here are compiled based on target JDK version
-if (KEM_SUPPORTED AND TARGET_JDK_VERSION EQUAL 17 AND BUILD_JDK_VERSION GREATER_EQUAL 21)
-    set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint "-Xlint:-removal" "-Xlint:-serial" -source ${TARGET_JDK_VERSION} -target ${TARGET_JDK_VERSION})
 else()
-    set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint "-Xlint:-removal" "-Xlint:-serial" --release ${TARGET_JDK_VERSION})
-    message(STATUS "Using JDK ${TARGET_JDK_VERSION} compilation flags with KEM support")
+    set_java_compile_flags()
 endif()
 
 set(ACCP_JAR "${CMAKE_CURRENT_BINARY_DIR}/AmazonCorrettoCryptoProvider.jar")
@@ -230,7 +238,8 @@ create_javadoc(
 
 add_custom_target(javadoc DEPENDS ${JNI_HEADER_DIR}/generated-headers.h ${GENERATED_JAVA_SRC} AmazonCorrettoCryptoProvider_javadoc)
 
-set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options --release 8)
+set_java_compile_flags()
+
 
 # Add a JAR target. We can't add resources here (as discussed below) so we'll
 # build a temporary one first.
