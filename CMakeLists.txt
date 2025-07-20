@@ -160,6 +160,32 @@ add_custom_command(
     COMMENT "Generating hash function SPI classes..."
     )
 
+
+if((TARGET_JDK_VERSION VERSION_LESS "17") OR ((TARGET_JDK_VERSION VERSION_GREATER_EQUAL "18") AND (TARGET_JDK_VERSION VERSION_LESS "21")))
+    set(KEM_SUPPORTED FALSE)
+else()
+    set(KEM_SUPPORTED TRUE)
+endif()
+
+macro(filter_kem_sources SOURCE_LIST)
+    set(JDK17PLUS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/com/amazon/corretto/crypto/provider/jdk17plus")
+
+    if(NOT (KEM_SUPPORTED AND EXISTS "${JDK17PLUS_DIR}"))
+        list(FILTER ${SOURCE_LIST} EXCLUDE REGEX ".*/jdk17plus/.*")
+        message(STATUS "Excluding jdk17plus directory: KEM_SUPPORTED=${KEM_SUPPORTED}, directory exists=${EXISTS}")
+    else()
+        message(STATUS "Including jdk17plus directory for KEM support")
+    endif()
+endmacro()
+
+# Macro to handle JDK17+ KEM test filtering (simpler logic for tests)
+macro(filter_kem_tests TEST_LIST)
+    if(NOT KEM_SUPPORTED)
+        list(FILTER ${TEST_LIST} EXCLUDE REGEX ".*/jdk17plus/.*")
+    endif()
+endmacro()
+
+
 # NOTE: CMake introduced the CONFIGURE_DEPENDS feature in 3.12, so condition
 #       its use on CMake version. If the feature is not available, you may need
 #       to `touch CMakeLists.txt` after adding/removing files for them to be
@@ -167,31 +193,13 @@ add_custom_command(
 if (${CMAKE_VERSION} VERSION_LESS "3.12.0")
     file(GLOB_RECURSE ACCP_SRC "src/com/amazon/corretto/crypto/provider/*.java")
     file(GLOB_RECURSE ACCP_UTILS_SRC "src/com/amazon/corretto/crypto/utils/*.java")
-    if(NOT KEM_SUPPORTED)
-        list(FILTER ACCP_SRC EXCLUDE REGEX ".*/jdk17plus/.*")
-    else()
-        if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/com/amazon/corretto/crypto/provider/jdk17plus")
-            list(FILTER ACCP_SRC EXCLUDE REGEX ".*/jdk17plus/.*")
-        endif()
-    endif()
+    filter_kem_sources(ACCP_SRC)
 else()
     file(GLOB_RECURSE ACCP_SRC CONFIGURE_DEPENDS "src/com/amazon/corretto/crypto/provider/*.java")
     file(GLOB_RECURSE ACCP_UTILS_SRC CONFIGURE_DEPENDS "src/com/amazon/corretto/crypto/utils/*.java")
-    if(NOT KEM_SUPPORTED)
-        list(FILTER ACCP_SRC EXCLUDE REGEX ".*/jdk17plus/.*")
-    else()
-        # Check if jdk17plus directory exists before including it
-        if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/com/amazon/corretto/crypto/provider/jdk17plus")
-            list(FILTER ACCP_SRC EXCLUDE REGEX ".*/jdk17plus/.*")
-        endif()
-    endif()
+    filter_kem_sources(ACCP_SRC)
 endif()
 
-if((TARGET_JDK_VERSION VERSION_LESS "17") OR ((TARGET_JDK_VERSION VERSION_GREATER_EQUAL "18") AND (TARGET_JDK_VERSION VERSION_LESS "21")))
-    set(KEM_SUPPORTED FALSE)
-else()
-    set(KEM_SUPPORTED TRUE)
-endif()
 
 set(ACCP_SRC ${ACCP_SRC} ${ACCP_UTILS_SRC} ${GENERATED_JAVA_SRC})
 set(BASE_JAVA_COMPILE_FLAGS ${CMAKE_JAVA_COMPILE_FLAGS} -h "${JNI_HEADER_DIR}")
@@ -204,7 +212,6 @@ macro(set_java_compile_flags)
         set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options --release ${TARGET_JDK_VERSION})
     endif()
 endmacro()
-
 
 # Java targets defined here are compiled for Java supporting modules
 if(TARGET_JDK_VERSION EQUAL 8)
@@ -643,14 +650,10 @@ link_with_openssl(amazonCorrettoCryptoProvider)
 #       detected by CMake.
 if (${CMAKE_VERSION} VERSION_LESS "3.12.0")
     file(GLOB_RECURSE ACCP_TEST_SRC "tst/com/amazon/corretto/crypto/provider/*.java")
-    if(NOT KEM_SUPPORTED)
-        list(FILTER ACCP_TEST_SRC EXCLUDE REGEX ".*/jdk17plus/.*")
-    endif()
+    filter_kem_tests(ACCP_TEST_SRC)
 else()
     file(GLOB_RECURSE ACCP_TEST_SRC CONFIGURE_DEPENDS "tst/com/amazon/corretto/crypto/provider/*.java")
-    if(NOT KEM_SUPPORTED)
-        list(FILTER ACCP_TEST_SRC EXCLUDE REGEX ".*/jdk17plus/.*")
-    endif()
+    filter_kem_tests(ACCP_TEST_SRC)
 endif()
 
 
