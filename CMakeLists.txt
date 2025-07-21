@@ -160,6 +160,26 @@ add_custom_command(
     COMMENT "Generating hash function SPI classes..."
     )
 
+if((TARGET_JDK_VERSION VERSION_LESS "17") OR ((TARGET_JDK_VERSION VERSION_GREATER_EQUAL "18") AND (TARGET_JDK_VERSION VERSION_LESS "21")))
+    set(KEM_SUPPORTED FALSE)
+else()
+    set(KEM_SUPPORTED TRUE)
+endif()
+
+macro(filter_kem_sources SOURCE_LIST)
+    set(JDK17PLUS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/com/amazon/corretto/crypto/provider/jdk17plus")
+    if(NOT (KEM_SUPPORTED AND EXISTS "${JDK17PLUS_DIR}"))
+        list(FILTER ${SOURCE_LIST} EXCLUDE REGEX ".*/jdk17plus/.*")
+    endif()
+endmacro()
+
+macro(filter_kem_tests TEST_LIST)
+    if(NOT KEM_SUPPORTED)
+        list(FILTER ${TEST_LIST} EXCLUDE REGEX ".*/jdk17plus/.*")
+    endif()
+endmacro()
+
+
 # NOTE: CMake introduced the CONFIGURE_DEPENDS feature in 3.12, so condition
 #       its use on CMake version. If the feature is not available, you may need
 #       to `touch CMakeLists.txt` after adding/removing files for them to be
@@ -167,16 +187,31 @@ add_custom_command(
 if (${CMAKE_VERSION} VERSION_LESS "3.12.0")
     file(GLOB_RECURSE ACCP_SRC "src/com/amazon/corretto/crypto/provider/*.java")
     file(GLOB_RECURSE ACCP_UTILS_SRC "src/com/amazon/corretto/crypto/utils/*.java")
+    filter_kem_sources(ACCP_SRC)
 else()
     file(GLOB_RECURSE ACCP_SRC CONFIGURE_DEPENDS "src/com/amazon/corretto/crypto/provider/*.java")
     file(GLOB_RECURSE ACCP_UTILS_SRC CONFIGURE_DEPENDS "src/com/amazon/corretto/crypto/utils/*.java")
+    filter_kem_sources(ACCP_SRC)
 endif()
-set(ACCP_SRC ${ACCP_SRC} ${ACCP_UTILS_SRC} ${GENERATED_JAVA_SRC})
 
+
+set(ACCP_SRC ${ACCP_SRC} ${ACCP_UTILS_SRC} ${GENERATED_JAVA_SRC})
 set(BASE_JAVA_COMPILE_FLAGS ${CMAKE_JAVA_COMPILE_FLAGS} -h "${JNI_HEADER_DIR}" -Werror)
 
+macro(set_java_compile_flags)
+    if (KEM_SUPPORTED AND TARGET_JDK_VERSION EQUAL 17 AND BUILD_JDK_VERSION GREATER_EQUAL 21)
+        set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options -source ${TARGET_JDK_VERSION} -target ${TARGET_JDK_VERSION})
+    else()
+        set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options --release ${TARGET_JDK_VERSION})
+    endif()
+endmacro()
+
 # Java targets defined here are compiled for Java supporting modules
-set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint --release 9)
+if(TARGET_JDK_VERSION EQUAL 8)
+    set(TARGET_JDK_VERSION 9)
+else()
+    set_java_compile_flags()
+endif()
 
 set(ACCP_JAR "${CMAKE_CURRENT_BINARY_DIR}/AmazonCorrettoCryptoProvider.jar")
 set(ACCP_JAR_SOURCE "${CMAKE_CURRENT_BINARY_DIR}/AmazonCorrettoCryptoProvider-sources.jar")
@@ -200,8 +235,8 @@ create_javadoc(
 
 add_custom_target(javadoc DEPENDS ${JNI_HEADER_DIR}/generated-headers.h ${GENERATED_JAVA_SRC} AmazonCorrettoCryptoProvider_javadoc)
 
-# All subsequent Java targets are compatible with Java 8
-set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options --release 8)
+set_java_compile_flags()
+
 
 # Add a JAR target. We can't add resources here (as discussed below) so we'll
 # build a temporary one first.
@@ -241,6 +276,7 @@ else()
     )
 endif()
 
+# All subsequent Java targets are compatible with Java 8
 add_custom_target(accp-jar ALL DEPENDS ${ACCP_JAR})
 
 # Attach the JAR_FILE property to our custom jar target; this allows add_jar
@@ -606,8 +642,10 @@ link_with_openssl(amazonCorrettoCryptoProvider)
 #       detected by CMake.
 if (${CMAKE_VERSION} VERSION_LESS "3.12.0")
     file(GLOB_RECURSE ACCP_TEST_SRC "tst/com/amazon/corretto/crypto/provider/*.java")
+    filter_kem_tests(ACCP_TEST_SRC)
 else()
     file(GLOB_RECURSE ACCP_TEST_SRC CONFIGURE_DEPENDS "tst/com/amazon/corretto/crypto/provider/*.java")
+    filter_kem_tests(ACCP_TEST_SRC)
 endif()
 
 
@@ -683,7 +721,6 @@ add_custom_target(check-junit
         --reports-dir=unit-tests
         --select-package=com.amazon.corretto.crypto.provider.test
         --exclude-package=com.amazon.corretto.crypto.provider.test.integration
-        --exclude-classname=com.amazon.corretto.crypto.provider.test.SecurityManagerTest
         --exclude-classname=com.amazon.corretto.crypto.provider.test.FipsStatusTest
 
     DEPENDS accp-jar tests-jar)
@@ -696,15 +733,6 @@ if (DEFINED SINGLE_TEST)
 
         DEPENDS accp-jar tests-jar)
 endif() # SINGLE_TEST
-
-add_custom_target(check-junit-SecurityManager
-    COMMAND ${TEST_JAVA_EXECUTABLE}
-        ${TEST_RUNNER_ARGUMENTS}
-        --select-class=com.amazon.corretto.crypto.provider.test.AesTest # Force loading ciphers
-        --select-class=com.amazon.corretto.crypto.provider.test.SHA1Test # Force loading digests
-        --select-class=com.amazon.corretto.crypto.provider.test.SecurityManagerTest
-
-    DEPENDS accp-jar tests-jar)
 
 add_custom_target(check-junit-FipsStatus
     COMMAND ${TEST_JAVA_EXECUTABLE}
@@ -721,7 +749,6 @@ add_custom_target(check-with-jni-flag
         ${TEST_RUNNER_ARGUMENTS}
         --select-package=com.amazon.corretto.crypto.provider.test
         --exclude-package=com.amazon.corretto.crypto.provider.test.integration
-        --exclude-classname=com.amazon.corretto.crypto.provider.test.SecurityManagerTest
 
     DEPENDS accp-jar tests-jar)
 
@@ -763,7 +790,6 @@ add_custom_target(check-junit-extra-checks
         --select-package=com.amazon.corretto.crypto.provider.test
         --exclude-package=com.amazon.corretto.crypto.provider.test.integration
         --exclude-classname=com.amazon.corretto.crypto.provider.test.FipsStatusTest
-        --exclude-classname=com.amazon.corretto.crypto.provider.test.SecurityManagerTest
 
     DEPENDS accp-jar tests-jar)
 
@@ -864,7 +890,6 @@ set(check_targets
     check-install-via-properties
     check-install-via-properties-with-debug
     check-junit
-    check-junit-SecurityManager
     check-external-lib
     check-junit-AesLazy
     check-junit-AesEager
