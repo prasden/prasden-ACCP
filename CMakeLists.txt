@@ -160,7 +160,6 @@ add_custom_command(
     COMMENT "Generating hash function SPI classes..."
     )
 
-
 if((TARGET_JDK_VERSION VERSION_LESS "17") OR ((TARGET_JDK_VERSION VERSION_GREATER_EQUAL "18") AND (TARGET_JDK_VERSION VERSION_LESS "21")))
     set(KEM_SUPPORTED FALSE)
 else()
@@ -169,16 +168,11 @@ endif()
 
 macro(filter_kem_sources SOURCE_LIST)
     set(JDK17PLUS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/com/amazon/corretto/crypto/provider/jdk17plus")
-
     if(NOT (KEM_SUPPORTED AND EXISTS "${JDK17PLUS_DIR}"))
         list(FILTER ${SOURCE_LIST} EXCLUDE REGEX ".*/jdk17plus/.*")
-        message(STATUS "Excluding jdk17plus directory: KEM_SUPPORTED=${KEM_SUPPORTED}, directory exists=${EXISTS}")
-    else()
-        message(STATUS "Including jdk17plus directory for KEM support")
     endif()
 endmacro()
 
-# Macro to handle JDK17+ KEM test filtering (simpler logic for tests)
 macro(filter_kem_tests TEST_LIST)
     if(NOT KEM_SUPPORTED)
         list(FILTER ${TEST_LIST} EXCLUDE REGEX ".*/jdk17plus/.*")
@@ -202,9 +196,8 @@ endif()
 
 
 set(ACCP_SRC ${ACCP_SRC} ${ACCP_UTILS_SRC} ${GENERATED_JAVA_SRC})
-set(BASE_JAVA_COMPILE_FLAGS ${CMAKE_JAVA_COMPILE_FLAGS} -h "${JNI_HEADER_DIR}")
+set(BASE_JAVA_COMPILE_FLAGS ${CMAKE_JAVA_COMPILE_FLAGS} -h "${JNI_HEADER_DIR}" -Werror)
 
-# Define a function to set Java compilation flags based on JDK version and KEM support
 macro(set_java_compile_flags)
     if (KEM_SUPPORTED AND TARGET_JDK_VERSION EQUAL 17 AND BUILD_JDK_VERSION GREATER_EQUAL 21)
         set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options -source ${TARGET_JDK_VERSION} -target ${TARGET_JDK_VERSION})
@@ -284,7 +277,6 @@ else()
 endif()
 
 # All subsequent Java targets are compatible with Java 8
-# set(CMAKE_JAVA_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options --release 8)
 add_custom_target(accp-jar ALL DEPENDS ${ACCP_JAR})
 
 # Attach the JAR_FILE property to our custom jar target; this allows add_jar
