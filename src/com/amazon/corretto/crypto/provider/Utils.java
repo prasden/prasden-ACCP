@@ -3,6 +3,7 @@
 package com.amazon.corretto.crypto.provider;
 
 import java.nio.ByteBuffer;
+import java.security.AccessController;
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -10,6 +11,7 @@ import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.PrivilegedAction;
 import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -221,6 +223,27 @@ final class Utils {
       default:
         throw new IllegalArgumentException("Unexpected key type: " + keyType);
     }
+  }
+
+  /**
+   * Checks if KEM API is supported in the current JDK version. KEM is available in JDK 21+ and JDK
+   * 17+
+   */
+  static boolean isKEMSupported() {
+    int javaVersion = getJavaVersion();
+
+    if (javaVersion >= 21) {
+      return true;
+    }
+    if (javaVersion >= 17) {
+      try {
+        Class.forName("javax.crypto.KEM");
+        return true;
+      } catch (ClassNotFoundException e) {
+        return false;
+      }
+    }
+    return false;
   }
 
   static Key buildUnwrappedKey(final byte[] rawKey, final String algorithm, final int keyType)
@@ -535,7 +558,9 @@ final class Utils {
     if (JAVA_VERSION > 0) {
       return JAVA_VERSION;
     }
-    final String strVersion = System.getProperty("java.specification.version");
+    final String strVersion =
+        AccessController.doPrivileged(
+            (PrivilegedAction<String>) () -> System.getProperty("java.specification.version"));
     try {
       final String[] parts = strVersion.split("\\.");
       if (parts[0].equals("1")) {

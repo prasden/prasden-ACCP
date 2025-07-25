@@ -345,6 +345,7 @@ set(C_SRC
     csrc/aes_kwp.cpp
     csrc/agreement.cpp
     csrc/bn.cpp
+    csrc/mlkem_gen.cpp
     csrc/buffer.cpp
     csrc/concatenation_kdf.cpp
     csrc/counter_kdf.cpp
