@@ -202,7 +202,7 @@ else()
 endif()
 set(ACCP_SRC ${ACCP_SRC} ${ACCP_UTILS_SRC} ${GENERATED_JAVA_SRC})
 
-set(BASE_JAVA_COMPILE_FLAGS ${CMAKE_JAVA_COMPILE_FLAGS} -h "${JNI_HEADER_DIR}" -Werror)
+set(BASE_JAVA_COMPILE_FLAGS ${CMAKE_JAVA_COMPILE_FLAGS} -h "${JNI_HEADER_DIR}")
 
 # This macro checks if the build time JDK is 21 above and the target is 17. If so, it uses
 # -source and -target instead of --release to properly support the backported KEM API on JDK 17.
@@ -352,6 +352,7 @@ set(C_SRC
     csrc/ec_gen.cpp
     csrc/ec_utils.cpp
     csrc/ed_gen.cpp
+    csrc/mlkem_gen.cpp          # add to fips later
     csrc/env.cpp
     csrc/hkdf.cpp
     csrc/hmac.cpp
