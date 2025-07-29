@@ -163,26 +163,20 @@ add_custom_command(
 # The KEM API was introduced in JDK 21 and backported to JDK 17
 # It is not supported on anything below JDK 17 or on JDK 18-20
 if((TARGET_JDK_VERSION VERSION_LESS "17") OR ((TARGET_JDK_VERSION VERSION_GREATER_EQUAL "18") AND (TARGET_JDK_VERSION VERSION_LESS "21")))
-    set(KEM_SUPPORTED FALSE)
+    set(INCLUDE_JDK17PLUS_DIR FALSE)
 else()
-    set(KEM_SUPPORTED TRUE)
+    set(INCLUDE_JDK17PLUS_DIR TRUE)
 endif()
 
 # macro to filter source lists based on conditions and directory existence checks
-# FILTER_LIST: The list variable to filter
-# PATH_PATTERN: Regex pattern to match paths for filtering (".*/jdk17plus/.*")
-# CONDITION: Boolean condition - if false, items matching PATH_PATTERN are excluded
-# Optional 4th argument: Check if directory exists 
-macro(filter_sources_by_condition FILTER_LIST PATH_PATTERN CONDITION)
-    set(SHOULD_INCLUDE ${CONDITION})
-    if(${ARGC} GREATER 3)
-        set(CHECK_DIR ${ARGV3})
-        if(NOT EXISTS "${CHECK_DIR}")
-            set(SHOULD_INCLUDE FALSE)
-        endif()
-    endif()
-    
-    if(NOT SHOULD_INCLUDE)
+# FILTER_LIST: the list variable to filter
+# PATH_PATTERN: regex pattern to match paths for filtering (".*/jdk17plus/.*")
+# CONDITION: Boolean condition for whether or not the path PATH_PATTERN is excluded
+# CHECK_DIR: Directory path to check for existence - can remove after jdk17plus directory is merged to ACCP 
+macro(filter_sources_by_condition FILTER_LIST PATH_PATTERN CONDITION CHECK_DIR)
+    if(NOT ${CONDITION})
+        list(FILTER ${FILTER_LIST} EXCLUDE REGEX "${PATH_PATTERN}")
+    elseif(CHECK_DIR AND NOT EXISTS "${CHECK_DIR}")
         list(FILTER ${FILTER_LIST} EXCLUDE REGEX "${PATH_PATTERN}")
     endif()
 endmacro()
@@ -194,11 +188,11 @@ endmacro()
 if (${CMAKE_VERSION} VERSION_LESS "3.12.0")
     file(GLOB_RECURSE ACCP_SRC "src/com/amazon/corretto/crypto/provider/*.java")
     file(GLOB_RECURSE ACCP_UTILS_SRC "src/com/amazon/corretto/crypto/utils/*.java")
-    filter_sources_by_condition(ACCP_SRC ".*/jdk17plus/.*" ${KEM_SUPPORTED} "${CMAKE_CURRENT_SOURCE_DIR}/src/com/amazon/corretto/crypto/provider/jdk17plus")
+    filter_sources_by_condition(ACCP_SRC ".*/jdk17plus/.*" ${INCLUDE_JDK17PLUS_DIR} "${CMAKE_CURRENT_SOURCE_DIR}/src/com/amazon/corretto/crypto/provider/jdk17plus")
 else()
     file(GLOB_RECURSE ACCP_SRC CONFIGURE_DEPENDS "src/com/amazon/corretto/crypto/provider/*.java")
     file(GLOB_RECURSE ACCP_UTILS_SRC CONFIGURE_DEPENDS "src/com/amazon/corretto/crypto/utils/*.java")
-    filter_sources_by_condition(ACCP_SRC ".*/jdk17plus/.*" ${KEM_SUPPORTED} "${CMAKE_CURRENT_SOURCE_DIR}/src/com/amazon/corretto/crypto/provider/jdk17plus")
+    filter_sources_by_condition(ACCP_SRC ".*/jdk17plus/.*" ${INCLUDE_JDK17PLUS_DIR} "${CMAKE_CURRENT_SOURCE_DIR}/src/com/amazon/corretto/crypto/provider/jdk17plus")
 endif()
 set(ACCP_SRC ${ACCP_SRC} ${ACCP_UTILS_SRC} ${GENERATED_JAVA_SRC})
 
@@ -206,58 +200,39 @@ set(BASE_JAVA_COMPILE_FLAGS ${CMAKE_JAVA_COMPILE_FLAGS} -h "${JNI_HEADER_DIR}")
 
 # This macro checks if the build time JDK is 21 above and the target is 17. If so, it uses
 # -source and -target instead of --release to properly support the backported KEM API on JDK 17.
+# For JDK 8 targets, it uses --release 9 for module compilation and --release 8 for code compilation.
 # Otherwise, releases on user specified target.
 macro(set_conditional_compile_flags OUTPUT_VAR)
-    if (KEM_SUPPORTED AND TARGET_JDK_VERSION EQUAL 17 AND BUILD_JDK_VERSION GREATER_EQUAL 21)
+    set(IS_MODULE_COMPILATION FALSE)
+    if(${ARGC} GREATER 1 AND "${ARGV1}" STREQUAL "MODULE")
+        set(IS_MODULE_COMPILATION TRUE)
+    endif()
+    
+    if(TARGET_JDK_VERSION EQUAL 8)
+        if(IS_MODULE_COMPILATION)
+            set(${OUTPUT_VAR} ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options --release 9)
+        else()
+            set(${OUTPUT_VAR} ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options --release 8)
+        endif()
+    elseif(INCLUDE_JDK17PLUS_DIR AND TARGET_JDK_VERSION EQUAL 17 AND BUILD_JDK_VERSION GREATER_EQUAL 21)
         set(${OUTPUT_VAR} ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options -source ${TARGET_JDK_VERSION} -target ${TARGET_JDK_VERSION})
     else()
         set(${OUTPUT_VAR} ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options --release ${TARGET_JDK_VERSION})
     endif()
 endmacro()
 
-# Configure Java compilation flags by setting target and build JDK versions
-# Defaults to JDK 8 if versions are not specified or auto-detected
-# Applies conditional compilation flags based on determined JDK versions
-macro(set_java_compile_flags)
-    if(NOT DEFINED TARGET_JDK_VERSION OR TARGET_JDK_VERSION STREQUAL "")
-        set(TARGET_JDK_VERSION "8")
-    endif()
-    if(NOT DEFINED BUILD_JDK_VERSION OR BUILD_JDK_VERSION STREQUAL "")
-        if(DEFINED Java_VERSION_MAJOR AND NOT Java_VERSION_MAJOR STREQUAL "")
-            set(BUILD_JDK_VERSION ${Java_VERSION_MAJOR})
-        else()
-            set(BUILD_JDK_VERSION "8")
-        endif()
-    endif()
-    set_conditional_compile_flags(CMAKE_JAVA_COMPILE_FLAGS)
-endmacro()
-
-if(NOT DEFINED TARGET_JDK_VERSION OR TARGET_JDK_VERSION STREQUAL "")
-    set(TARGET_JDK_VERSION "8")
-endif()
-
-set(ORIGINAL_TARGET_JDK_VERSION ${TARGET_JDK_VERSION})
-
-# Java targets defined here are compiled for Java supporting modules
-if(TARGET_JDK_VERSION EQUAL 8)
-    set(MODULE_COMPILE_FLAGS ${BASE_JAVA_COMPILE_FLAGS} -Xlint:-options --release 9)
-else()
-    set_conditional_compile_flags(MODULE_COMPILE_FLAGS)
-endif()
 
 set(ACCP_JAR "${CMAKE_CURRENT_BINARY_DIR}/AmazonCorrettoCryptoProvider.jar")
 set(ACCP_JAR_SOURCE "${CMAKE_CURRENT_BINARY_DIR}/AmazonCorrettoCryptoProvider-sources.jar")
 
-set(CMAKE_JAVA_COMPILE_FLAGS ${MODULE_COMPILE_FLAGS})
+# Java targets defined here are compiled for Java supporting modules
+set_conditional_compile_flags(CMAKE_JAVA_COMPILE_FLAGS MODULE)
 add_jar(
     module-jar
     SOURCES ${ACCP_SRC}
         src/module-info.java
     INCLUDE_JARS ${BUILD_CLASSPATH_LIST}
 )
-
-# Reset TARGET_JDK_VERSION to original value for subsequent targets
-set(TARGET_JDK_VERSION ${ORIGINAL_TARGET_JDK_VERSION})
 
 create_javadoc(
     AmazonCorrettoCryptoProvider
@@ -272,7 +247,7 @@ create_javadoc(
 add_custom_target(javadoc DEPENDS ${JNI_HEADER_DIR}/generated-headers.h ${GENERATED_JAVA_SRC} AmazonCorrettoCryptoProvider_javadoc)
 
 # Set compilation flags for regular code (non-module) targets
-set_java_compile_flags()
+set_conditional_compile_flags(CMAKE_JAVA_COMPILE_FLAGS)
 
 # Add a JAR target. We can't add resources here (as discussed below) so we'll
 # build a temporary one first.
@@ -345,14 +320,12 @@ set(C_SRC
     csrc/aes_kwp.cpp
     csrc/agreement.cpp
     csrc/bn.cpp
-    csrc/mlkem_gen.cpp
     csrc/buffer.cpp
     csrc/concatenation_kdf.cpp
     csrc/counter_kdf.cpp
     csrc/ec_gen.cpp
     csrc/ec_utils.cpp
     csrc/ed_gen.cpp
-    csrc/mlkem_gen.cpp          # add to fips later
     csrc/env.cpp
     csrc/hkdf.cpp
     csrc/hmac.cpp
@@ -374,6 +347,8 @@ set(C_SRC
     csrc/util_class.cpp
     csrc/fips_kat_self_test.cpp
     csrc/fips_status.cpp
+    csrc/mlkem_spi.cpp 
+    csrc/mlkem_gen.cpp
     ${JNI_HEADER_DIR}/generated-headers.h)
 
 if(FIPS)
@@ -382,6 +357,11 @@ if(FIPS)
 else()
     set(TEST_FIPS_PROPERTY "-DFIPS=false")
 endif()
+
+# # Include ML-KEM operations when the target release is JDK 17/21+
+# if(INCLUDE_JDK17PLUS_DIR)
+#     set(C_SRC ${C_SRC} )
+# endif()
 
 # The source files under this guard should be removed and added to all builds, including FIPS,
 # once the corresponding algorithms are added to a FIPS branch of AWS-LC consumable by ACCP.
@@ -679,10 +659,10 @@ link_with_openssl(amazonCorrettoCryptoProvider)
 #       detected by CMake.
 if (${CMAKE_VERSION} VERSION_LESS "3.12.0")
     file(GLOB_RECURSE ACCP_TEST_SRC "tst/com/amazon/corretto/crypto/provider/*.java")
-    filter_sources_by_condition(ACCP_TEST_SRC ".*/jdk17plus/.*" ${KEM_SUPPORTED})
+    filter_sources_by_condition(ACCP_TEST_SRC ".*/jdk17plus/.*" ${INCLUDE_JDK17PLUS_DIR} "")
 else()
     file(GLOB_RECURSE ACCP_TEST_SRC CONFIGURE_DEPENDS "tst/com/amazon/corretto/crypto/provider/*.java")
-    filter_sources_by_condition(ACCP_TEST_SRC ".*/jdk17plus/.*" ${KEM_SUPPORTED})
+    filter_sources_by_condition(ACCP_TEST_SRC ".*/jdk17plus/.*" ${INCLUDE_JDK17PLUS_DIR} "")
 endif()
 
 
