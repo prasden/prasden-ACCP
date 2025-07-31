@@ -22,6 +22,7 @@ JNIEXPORT jlong JNICALL Java_com_amazon_corretto_crypto_provider_MlKemGen_genera
             break;
         case 768:
             nid = NID_MLKEM768;
+            // return key size 
             break;
         case 1024:
             nid = NID_MLKEM1024;

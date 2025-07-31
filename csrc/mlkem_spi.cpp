@@ -9,6 +9,42 @@
 
 using namespace AmazonCorrettoCryptoProvider;
 
+static int ciphertextLengthToParameterSet(size_t ciphertext_len) {
+    switch (ciphertext_len) {
+        case 768:  return 512;   // MLKEM512_CIPHERTEXT_BYTES
+        case 1088: return 768;   // MLKEM768_CIPHERTEXT_BYTES  
+        case 1568: return 1024;  // MLKEM1024_CIPHERTEXT_BYTES
+        default:   return -1;
+    }
+}
+
+JNIEXPORT jint JNICALL Java_com_amazon_corretto_crypto_provider_KemUtils_nativeGetParameterSet(
+    JNIEnv* pEnv, jclass, jlong evpKeyPtr)
+{
+    try {
+        raii_env env(pEnv);
+        EVP_PKEY* key = reinterpret_cast<EVP_PKEY*>(evpKeyPtr);
+        
+        EVP_PKEY_CTX_auto ctx = EVP_PKEY_CTX_auto::from(EVP_PKEY_CTX_new(key, NULL));
+        if (!ctx.isInitialized()) {
+            throw_java_ex(EX_RUNTIME_CRYPTO, "Failed to create EVP context");
+        }
+        
+        size_t ciphertext_len, shared_secret_len;
+        CHECK_OPENSSL(EVP_PKEY_encapsulate(ctx, NULL, &ciphertext_len, NULL, &shared_secret_len));
+        
+        int paramSet = ciphertextLengthToParameterSet(ciphertext_len);
+        if (paramSet == -1) {
+            throw_java_ex(EX_RUNTIME_CRYPTO, "Unknown ML-KEM parameter set");
+        }
+        
+        return paramSet;
+    } catch (java_ex& ex) {
+        ex.throw_to_java(pEnv);
+        return -1;
+    }
+}
+
 JNIEXPORT void JNICALL Java_com_amazon_corretto_crypto_provider_MLKemSpi_nativeEncapsulate(
     JNIEnv* pEnv, jclass, jlong evpKeyPtr, jbyteArray ciphertextArray, jbyteArray sharedSecretArray)
 {

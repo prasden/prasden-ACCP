@@ -2,6 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 package com.amazon.corretto.crypto.provider;
 
+import java.security.InvalidAlgorithmParameterException;
+import java.security.spec.AlgorithmParameterSpec;
+import java.security.spec.NamedParameterSpec;
+
 /**
  * Utility class containing ML-KEM constants from aws-lc/crypto/fipsmodule/ml_kem/ml_kem.h .
  */
@@ -26,6 +30,9 @@ public final class KemUtils {
     public static final int MLKEM1024_PUBLIC_KEY_BYTES = 1568;
     public static final int MLKEM1024_SECRET_KEY_BYTES = 3168;
     public static final int MLKEM1024_CIPHERTEXT_BYTES = 1568;
+
+    private static native int nativeGetParameterSet(long keyPtr);
+
     
     /**
      * Get public key size for the given parameter set.
@@ -40,6 +47,10 @@ public final class KemUtils {
             case MLKEM_1024: return MLKEM1024_PUBLIC_KEY_BYTES;
             default: throw new IllegalArgumentException("Invalid parameter set: " + parameterSet);
         }
+    }
+
+    public static int getParameterSet(EvpKemKey key){
+        return key.use(ptr -> nativeGetParameterSet(ptr));
     }
     
     /**
@@ -71,5 +82,35 @@ public final class KemUtils {
             default: throw new IllegalArgumentException("Invalid parameter set: " + parameterSet);
         }
     }
+    
+    /**
+     * Validates and extracts the parameter set from an AlgorithmParameterSpec.
+     * 
+     * @param spec the algorithm parameter spec (must not be null)
+     * @param key the ML-KEM key to validate against
+     * @return the validated parameter set (512, 768, or 1024)
+     * @throws InvalidAlgorithmParameterException if spec is null, wrong type, or incompatible with key
+     */
+    public static void validateParameterSpec(AlgorithmParameterSpec spec, EvpKemKey key) 
+    throws InvalidAlgorithmParameterException {
+    
+    if (spec == null) {
+        throw new InvalidAlgorithmParameterException("Please pass in a non-null parameter spec.");
+    }
+    if (spec instanceof NamedParameterSpec) {
+        NamedParameterSpec namedSpec = (NamedParameterSpec) spec;
+        int paramSet = getParameterSet(key);
+        String expectedName = "ML-KEM-" + paramSet;
+        
+        if (!namedSpec.getName().equals(expectedName)) {
+            throw new InvalidAlgorithmParameterException(
+                "Parameter spec mismatch. Expected: " + expectedName + 
+                ", but got: " + namedSpec.getName());
+        }
+    } else {
+        throw new InvalidAlgorithmParameterException(
+            "Unsupported parameter spec type: " + spec.getClass().getName());
+    }
+}
 }
 

@@ -20,7 +20,7 @@ enum EvpKeyType {
   EC("EC", 408, ECPublicKey.class, ECPrivateKey.class),
   EdDSA("EdDSA", 949, PublicKey.class, PrivateKey.class),
   MLDSA("ML-DSA", 993, PublicKey.class, PrivateKey.class),
-  KEM("ML-KEM", 994, PublicKey.class, PrivateKey.class);
+  KEM("ML-KEM", 988, PublicKey.class, PrivateKey.class);
 
   final String jceName;
   final int nativeValue;

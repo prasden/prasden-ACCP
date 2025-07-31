@@ -226,8 +226,8 @@ final class Utils {
   }
 
   /**
-   * Checks if KEM API is supported in the current JDK version. KEM is available in JDK 21+ and JDK
-   * 17+
+   * Checks if KEM API is supported in the current JDK version. 
+   * The KEM API is available in JDK 21+ and JDK 17+
    */
   static boolean isKEMSupported() {
     int javaVersion = getJavaVersion();

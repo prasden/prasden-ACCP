@@ -50,7 +50,9 @@ public abstract class MLKemSpi implements KEMSpi {
       throw new InvalidKeyException("Unsupported public key type");
     }
 
-    return new MLKemEncapsulatorSpi((EvpKemPublicKey) publicKey, ciphertextSize);
+    EvpKemPublicKey kemKey = (EvpKemPublicKey) publicKey;
+    KemUtils.validateParameterSpec(spec, kemKey);
+    return new MLKemEncapsulatorSpi(kemKey, ciphertextSize);
   }
 
   @Override
@@ -65,7 +67,9 @@ public abstract class MLKemSpi implements KEMSpi {
       throw new InvalidKeyException("Unsupported private key type");
     }
 
-    return new MLKemDecapsulatorSpi((EvpKemPrivateKey) privateKey, ciphertextSize);
+    EvpKemPrivateKey kemKey = (EvpKemPrivateKey) privateKey;
+    KemUtils.validateParameterSpec(spec, kemKey);
+    return new MLKemDecapsulatorSpi(kemKey, ciphertextSize);
   }
 
   public static final class MLKem512 extends MLKemSpi {
@@ -111,14 +115,13 @@ public abstract class MLKemSpi implements KEMSpi {
         byte[] ciphertext = new byte[ciphertextSize];
         // Shared secret size of ML-KEM is always 32 bytes regardless of parameter set
         byte[] sharedSecret = new byte[KemUtils.SHARED_SECRET_SIZE];
+       
         nativeEncapsulate(ptr, ciphertext, sharedSecret);
-
         return new KEM.Encapsulated(
             new SecretKeySpec(sharedSecret, algorithm),
             ciphertext,
             null);
       });
-
     }
 
     @Override
@@ -147,19 +150,10 @@ public abstract class MLKemSpi implements KEMSpi {
       if (encapsulation == null) {
         throw new NullPointerException("Encapsulation cannot be null");
       }
-      if (encapsulation.length != ciphertextSize) {
-        throw new DecapsulateException("Invalid encapsulation size");
-      }
       if (from < 0 || from > to || to > KemUtils.SHARED_SECRET_SIZE) {
         throw new IndexOutOfBoundsException("Invalid range: from=" + from + ", to=" + to);
       }
-      if (!"ML-KEM".equals(algorithm)) {
-        throw new UnsupportedOperationException("Only ML-KEM algorithm is supported, got: " + algorithm);
-      }
-      if (from != 0 || to != KemUtils.SHARED_SECRET_SIZE) {
-        throw new UnsupportedOperationException("Only full secret size is supported");
-      }
-
+    
       return privateKey.use(ptr -> {
         // Shared secret size of ML-KEM is always 32 bytes regardless of parameter set
         byte[] sharedSecret = new byte[KemUtils.SHARED_SECRET_SIZE];
