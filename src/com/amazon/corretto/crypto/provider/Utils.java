@@ -3,7 +3,6 @@
 package com.amazon.corretto.crypto.provider;
 
 import java.nio.ByteBuffer;
-import java.security.AccessController;
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -12,7 +11,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PrivilegedAction;
-import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
@@ -558,9 +556,6 @@ final class Utils {
     if (JAVA_VERSION > 0) {
       return JAVA_VERSION;
     }
-    final String strVersion =
-        AccessController.doPrivileged(
-            (PrivilegedAction<String>) () -> System.getProperty("java.specification.version"));
     try {
       final String[] parts = strVersion.split("\\.");
       if (parts[0].equals("1")) {
