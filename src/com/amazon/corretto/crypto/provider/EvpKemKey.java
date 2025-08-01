@@ -6,9 +6,8 @@ public abstract class EvpKemKey extends EvpKey {
 
   private volatile Integer parameterSet;
   private static final long serialVersionUID = 1;
-  private static native int getParameterSet(long ptr);
- 
 
+  private static native int getParameterSet(long ptr);
 
   EvpKemKey(final InternalKey key, final boolean isPublicKey) {
     // ADD KEM TYPE TO EVPKEM
@@ -21,7 +20,7 @@ public abstract class EvpKemKey extends EvpKey {
         synchronized (this) {
             result = parameterSet;
             if (result == null) {
-                result = use(EvpKemKey::getParameterSet);
+                result = use(ptr -> getParameterSet(ptr));  
                 parameterSet = result; 
             }
         }
@@ -29,6 +28,10 @@ public abstract class EvpKemKey extends EvpKey {
     return result;
 }
 
+  @Override 
+  public String getAlgorithm(){
+    return "ML-KEM" + getParameterSet(); 
+  }
 
 
 }
