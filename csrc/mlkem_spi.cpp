@@ -11,9 +11,9 @@ using namespace AmazonCorrettoCryptoProvider;
 
 static int ciphertextLengthToParameterSet(size_t ciphertext_len) {
     switch (ciphertext_len) {
-        case 768:  return 512;   // MLKEM512_CIPHERTEXT_BYTES
-        case 1088: return 768;   // MLKEM768_CIPHERTEXT_BYTES  
-        case 1568: return 1024;  // MLKEM1024_CIPHERTEXT_BYTES
+        case 768:  return 512;   
+        case 1088: return 768;   
+        case 1568: return 1024;  
         default:   return -1;
     }
 }
