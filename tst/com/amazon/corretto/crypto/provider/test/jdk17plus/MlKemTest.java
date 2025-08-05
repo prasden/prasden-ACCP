@@ -12,7 +12,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.amazon.corretto.crypto.provider.AmazonCorrettoCryptoProvider;
 import com.amazon.corretto.crypto.provider.EvpKemPrivateKey;
 import com.amazon.corretto.crypto.provider.EvpKemPublicKey;
-import com.amazon.corretto.crypto.provider.MlKemGen;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.KeyPair;
@@ -136,23 +135,6 @@ public class MlKemTest {
     assertEquals(paramSet, keyPair.getPublic().getAlgorithm());
     
     assertTrue(keyPair.getPrivate() instanceof EvpKemPrivateKey, 
-               "Private key should be EvpKemPrivateKey");
-    assertTrue(keyPair.getPublic() instanceof EvpKemPublicKey, 
-               "Public key should be EvpKemPublicKey");
-  }
-
-  @ParameterizedTest
-  @ValueSource(ints = {512, 768, 1024})
-  public void testMlKemGenDirectUsage(int parameterSet) throws Exception {
-
-    MlKemGen keyGen = createKeyGen(parameterSet);
-    KeyPair keyPair = keyGen.generateKeyPair();
-
-    assertNotNull(keyPair, "KeyPair should not be null");
-    assertNotNull(keyPair.getPrivate(), "Private key should not be null");
-    assertNotNull(keyPair.getPublic(), "Public key should not be null");
-
-    assertTrue(keyPair.getPrivate() instanceof EvpKemPrivateKey,
                "Private key should be EvpKemPrivateKey");
     assertTrue(keyPair.getPublic() instanceof EvpKemPublicKey, 
                "Public key should be EvpKemPublicKey");
@@ -385,41 +367,4 @@ public class MlKemTest {
     }
   }
 
-  @Test
-  public void testJniIntegration() throws Exception {
-    // Test JNI integration (from both existing tests)
-    for (int parameterSet : new int[]{512, 768, 1024}) {
-      MlKemGen keyGen = createKeyGen(parameterSet);
-      KeyPair keyPair = keyGen.generateKeyPair();
-      
-      assertNotNull(keyPair);
-      assertNotNull(keyPair.getPrivate());
-      assertNotNull(keyPair.getPublic());
-      
-      String paramSetName = "ML-KEM-" + parameterSet;
-      KEM kem = KEM.getInstance(paramSetName, NATIVE_PROVIDER);
-      NamedParameterSpec paramSpec = new NamedParameterSpec(paramSetName);
-      
-      KEM.Encapsulator encapsulator = kem.newEncapsulator(keyPair.getPublic(), paramSpec, null);
-      KEM.Encapsulated encapsulated = encapsulator.encapsulate();
-      
-      assertNotNull(encapsulated);
-      assertNotNull(encapsulated.key());
-      assertNotNull(encapsulated.encapsulation());
-    }
-  }
-
-
-  private MlKemGen createKeyGen(int parameterSet) {
-    switch (parameterSet) {
-      case 512:
-        return new MlKemGen.MlKemGen512(NATIVE_PROVIDER);
-      case 768:
-        return new MlKemGen.MlKemGen768(NATIVE_PROVIDER);
-      case 1024:
-        return new MlKemGen.MlKemGen1024(NATIVE_PROVIDER);
-      default:
-        throw new IllegalArgumentException("Unsupported parameter set: " + parameterSet);
-    }
-  }
 }

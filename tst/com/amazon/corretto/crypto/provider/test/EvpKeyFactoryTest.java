@@ -85,9 +85,8 @@ public class EvpKeyFactoryTest {
       }
     }
 
-    // Skip ML-KEM tests since they're stub implementations for build system testing
+    // Skip ML-KEM tests till ASN.1 encoding is supported
     ALGORITHMS.remove("ML-KEM");
-
     for (String algorithm : ALGORITHMS) {
       KeyPairGenerator kpg =
           getAlternateProvider(algorithm) == null
@@ -736,7 +735,7 @@ public class EvpKeyFactoryTest {
                 || algorithm.equals("Ed25519ph")
                 || algorithm.equals("EdDSA"))
             && TestUtil.getJavaVersion() < 15)
-        // JCE doesn't support ML-KEM algorithms - temporary fix until JNI implementation
+        // skip till ASN.1 encoding of ML-KEM keys is supported in AWS-LC
         || algorithm.startsWith("ML-KEM")) {
       return NATIVE_PROVIDER;
     }

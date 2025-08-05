@@ -347,8 +347,6 @@ set(C_SRC
     csrc/util_class.cpp
     csrc/fips_kat_self_test.cpp
     csrc/fips_status.cpp
-    csrc/mlkem_spi.cpp 
-    csrc/mlkem_gen.cpp
     ${JNI_HEADER_DIR}/generated-headers.h)
 
 if(FIPS)
@@ -358,13 +356,10 @@ else()
     set(TEST_FIPS_PROPERTY "-DFIPS=false")
 endif()
 
-# # Include ML-KEM operations when the target release is JDK 17/21+
-# if(INCLUDE_JDK17PLUS_DIR)
-#     set(C_SRC ${C_SRC} )
-# endif()
+if(INCLUDE_JDK17PLUS_DIR AND ((EXPERIMENTAL_FIPS OR (NOT FIPS))))
+    set(C_SRC ${C_SRC} csrc/mlkem_gen.cpp csrc/mlkem_spi.cpp)
+endif()
 
-# The source files under this guard should be removed and added to all builds, including FIPS,
-# once the corresponding algorithms are added to a FIPS branch of AWS-LC consumable by ACCP.
 if(EXPERIMENTAL_FIPS OR (NOT FIPS))
     set(C_SRC ${C_SRC} csrc/mldsa_gen.cpp)
 endif()

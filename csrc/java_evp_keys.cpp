@@ -716,27 +716,23 @@ JNIEXPORT jbyteArray JNICALL Java_com_amazon_corretto_crypto_provider_EvpMlDsaPr
 }
 #endif // !defined(FIPS_BUILD) || defined(EXPERIMENTAL_FIPS_BUILD)
 
+
 /*
  * Class:     com_amazon_corretto_crypto_provider_EvpKemPrivateKey
  * Method:    getRawPrivateKey
- * Signature: (J)[B
  */
 JNIEXPORT jbyteArray JNICALL Java_com_amazon_corretto_crypto_provider_EvpKemPrivateKey_getRawPrivateKey(
     JNIEnv* pEnv, jclass, jlong keyHandle)
 {
     jbyteArray result = NULL;
-
     try {
         raii_env env(pEnv);
-
         EVP_PKEY* key = reinterpret_cast<EVP_PKEY*>(keyHandle);
-        
+
         size_t keyLen;
-        // First call to get the required buffer size
         CHECK_OPENSSL(EVP_PKEY_get_raw_private_key(key, NULL, &keyLen) == 1);
         
         SimpleBuffer keyBuffer(keyLen);
-        // Second call to get the actual key data
         CHECK_OPENSSL(EVP_PKEY_get_raw_private_key(key, keyBuffer.get_buffer(), &keyLen) == 1);
 
         result = env->NewByteArray(keyLen);
@@ -747,31 +743,25 @@ JNIEXPORT jbyteArray JNICALL Java_com_amazon_corretto_crypto_provider_EvpKemPriv
     } catch (java_ex& ex) {
         ex.throw_to_java(pEnv);
     }
-
     return result;
 }
 
 /*
  * Class:     com_amazon_corretto_crypto_provider_EvpKemPublicKey
  * Method:    getRawPublicKey
- * Signature: (J)[B
  */
 JNIEXPORT jbyteArray JNICALL Java_com_amazon_corretto_crypto_provider_EvpKemPublicKey_getRawPublicKey(
     JNIEnv* pEnv, jclass, jlong keyHandle)
 {
     jbyteArray result = NULL;
-
     try {
         raii_env env(pEnv);
-
         EVP_PKEY* key = reinterpret_cast<EVP_PKEY*>(keyHandle);
         
         size_t keyLen;
-        // First call to get the required buffer size
         CHECK_OPENSSL(EVP_PKEY_get_raw_public_key(key, NULL, &keyLen) == 1);
         
         SimpleBuffer keyBuffer(keyLen);
-        // Second call to get the actual key data
         CHECK_OPENSSL(EVP_PKEY_get_raw_public_key(key, keyBuffer.get_buffer(), &keyLen) == 1);
 
         result = env->NewByteArray(keyLen);
@@ -782,6 +772,5 @@ JNIEXPORT jbyteArray JNICALL Java_com_amazon_corretto_crypto_provider_EvpKemPubl
     } catch (java_ex& ex) {
         ex.throw_to_java(pEnv);
     }
-
     return result;
 }

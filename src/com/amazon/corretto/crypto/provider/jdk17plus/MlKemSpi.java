@@ -16,7 +16,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.InvalidAlgorithmParameterException;
 
-public abstract class MLKemSpi implements KEMSpi {
+abstract class MlKemSpi implements KEMSpi {
 
   protected final int parameterSet;
   protected final int publicKeySize;
@@ -27,7 +27,7 @@ public abstract class MLKemSpi implements KEMSpi {
 
   private static native void nativeDecapsulate(long evpKeyPtr, byte[] ciphertext, byte[] sharedSecret);
 
-  protected MLKemSpi(int parameterSet) {
+  protected MlKemSpi(int parameterSet) {
     Loader.checkNativeLibraryAvailability();
     this.parameterSet = parameterSet;
     this.publicKeySize = KemUtils.getPublicKeySize(parameterSet);
@@ -52,7 +52,7 @@ public abstract class MLKemSpi implements KEMSpi {
 
     EvpKemPublicKey kemKey = (EvpKemPublicKey) publicKey;
     KemUtils.validateParameterSpec(spec, kemKey);
-    return new MLKemEncapsulatorSpi(kemKey, ciphertextSize);
+    return new MlKemEncapsulatorSpi(kemKey, ciphertextSize);
   }
 
   @Override
@@ -69,32 +69,32 @@ public abstract class MLKemSpi implements KEMSpi {
 
     EvpKemPrivateKey kemKey = (EvpKemPrivateKey) privateKey;
     KemUtils.validateParameterSpec(spec, kemKey);
-    return new MLKemDecapsulatorSpi(kemKey, ciphertextSize);
+    return new MlKemDecapsulatorSpi(kemKey, ciphertextSize);
   }
 
-  public static final class MLKem512 extends MLKemSpi {
-    public MLKem512() {
+  public static final class MlKem512 extends MlKemSpi {
+    public MlKem512() {
       super(KemUtils.MLKEM_512);
     }
   }
 
-  public static final class MLKem768 extends MLKemSpi {
-    public MLKem768() {
+  public static final class MlKem768 extends MlKemSpi {
+    public MlKem768() {
       super(KemUtils.MLKEM_768);
     }
   }
 
-  public static final class MLKem1024 extends MLKemSpi {
-    public MLKem1024() {
+  public static final class MlKem1024 extends MlKemSpi {
+    public MlKem1024() {
       super(KemUtils.MLKEM_1024);
     }
   }
 
-  private static class MLKemEncapsulatorSpi implements KEMSpi.EncapsulatorSpi {
+  private static class MlKemEncapsulatorSpi implements KEMSpi.EncapsulatorSpi {
     private final EvpKemPublicKey publicKey;
     private final int ciphertextSize;
 
-    MLKemEncapsulatorSpi(EvpKemPublicKey publicKey, int ciphertextSize) {
+    MlKemEncapsulatorSpi(EvpKemPublicKey publicKey, int ciphertextSize) {
       this.publicKey = publicKey;
       this.ciphertextSize = ciphertextSize;
     }
@@ -104,7 +104,6 @@ public abstract class MLKemSpi implements KEMSpi {
       if (from < 0 || from > to || to > KemUtils.SHARED_SECRET_SIZE) {
         throw new IndexOutOfBoundsException("Invalid range: from=" + from + ", to=" + to);
       }
-      // Accept "ML-KEM" or "Generic" (default when encapsulate() is called without parameters)
       if (!("ML-KEM".equals(algorithm) || "Generic".equals(algorithm))) {
         throw new UnsupportedOperationException("Only ML-KEM algorithm is supported, got: " + algorithm);
       }
@@ -114,7 +113,7 @@ public abstract class MLKemSpi implements KEMSpi {
 
       return publicKey.use(ptr -> {
         byte[] ciphertext = new byte[ciphertextSize];
-        // Shared secret size of ML-KEM is always 32 bytes regardless of parameter set
+        // shared secret size of ML-KEM is always 32 bytes regardless of parameter set
         byte[] sharedSecret = new byte[KemUtils.SHARED_SECRET_SIZE];
        
         nativeEncapsulate(ptr, ciphertext, sharedSecret);
@@ -136,11 +135,11 @@ public abstract class MLKemSpi implements KEMSpi {
     }
   }
 
-  private static class MLKemDecapsulatorSpi implements KEMSpi.DecapsulatorSpi {
+  private static class MlKemDecapsulatorSpi implements KEMSpi.DecapsulatorSpi {
     private final EvpKemPrivateKey privateKey;
     private final int ciphertextSize;
 
-    MLKemDecapsulatorSpi(EvpKemPrivateKey privateKey, int ciphertextSize) {
+    MlKemDecapsulatorSpi(EvpKemPrivateKey privateKey, int ciphertextSize) {
       this.privateKey = privateKey;
       this.ciphertextSize = ciphertextSize;
     }
@@ -156,7 +155,7 @@ public abstract class MLKemSpi implements KEMSpi {
       }
     
       return privateKey.use(ptr -> {
-        // Shared secret size of ML-KEM is always 32 bytes regardless of parameter set
+        // shared secret size of ML-KEM is always 32 bytes regardless of parameter set
         byte[] sharedSecret = new byte[KemUtils.SHARED_SECRET_SIZE];
         nativeDecapsulate(ptr, encapsulation, sharedSecret);
         return new SecretKeySpec(sharedSecret, algorithm);

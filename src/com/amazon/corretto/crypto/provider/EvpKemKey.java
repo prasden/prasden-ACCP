@@ -10,7 +10,6 @@ public abstract class EvpKemKey extends EvpKey {
   private static native int getParameterSet(long ptr);
 
   EvpKemKey(final InternalKey key, final boolean isPublicKey) {
-    // ADD KEM TYPE TO EVPKEM
     super(key, EvpKeyType.KEM, isPublicKey);
   }
 
@@ -20,7 +19,6 @@ public abstract class EvpKemKey extends EvpKey {
       synchronized (this) {
         result = parameterSet;
         if (result == null) {
-          // Call KemUtils instead of the non-existent native method
           result = use(ptr -> KemUtils.nativeGetParameterSet(ptr));
           parameterSet = result;
         }

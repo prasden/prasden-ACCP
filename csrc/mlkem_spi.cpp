@@ -6,14 +6,23 @@
 #include "util.h"
 #include "auto_free.h"
 #include <openssl/evp.h>
+#include <openssl/err.h>
 
 using namespace AmazonCorrettoCryptoProvider;
 
+// ML-KEM constants
+#define MLKEM_SHARED_SECRET_SIZE 32
+
+// Ciphertext sizes for each parameter set
+#define MLKEM_512_CIPHERTEXT_SIZE  768
+#define MLKEM_768_CIPHERTEXT_SIZE  1088  
+#define MLKEM_1024_CIPHERTEXT_SIZE 1568
+
 static int ciphertextLengthToParameterSet(size_t ciphertext_len) {
     switch (ciphertext_len) {
-        case 768:  return 512;   
-        case 1088: return 768;   
-        case 1568: return 1024;  
+        case MLKEM_512_CIPHERTEXT_SIZE:  return 512;   
+        case MLKEM_768_CIPHERTEXT_SIZE:  return 768;   
+        case MLKEM_1024_CIPHERTEXT_SIZE: return 1024;  
         default:   return -1;
     }
 }
@@ -23,8 +32,11 @@ JNIEXPORT jint JNICALL Java_com_amazon_corretto_crypto_provider_KemUtils_nativeG
 {
     try {
         raii_env env(pEnv);
-        EVP_PKEY* key = reinterpret_cast<EVP_PKEY*>(evpKeyPtr);
+        if (unlikely(!evpKeyPtr)) {
+            throw_java_ex(EX_NPE, "Null key pointer");
+        }
         
+        EVP_PKEY* key = reinterpret_cast<EVP_PKEY*>(evpKeyPtr);
         EVP_PKEY_CTX_auto ctx = EVP_PKEY_CTX_auto::from(EVP_PKEY_CTX_new(key, NULL));
         if (!ctx.isInitialized()) {
             throw_java_ex(EX_RUNTIME_CRYPTO, "Failed to create EVP context");
@@ -45,16 +57,19 @@ JNIEXPORT jint JNICALL Java_com_amazon_corretto_crypto_provider_KemUtils_nativeG
     }
 }
 
-JNIEXPORT void JNICALL Java_com_amazon_corretto_crypto_provider_MLKemSpi_nativeEncapsulate(
+JNIEXPORT void JNICALL Java_com_amazon_corretto_crypto_provider_MlKemSpi_nativeEncapsulate(
     JNIEnv* pEnv, jclass, jlong evpKeyPtr, jbyteArray ciphertextArray, jbyteArray sharedSecretArray)
 {
     try {
         raii_env env(pEnv);
-        EVP_PKEY* key = reinterpret_cast<EVP_PKEY*>(evpKeyPtr);
         
-        // Create EVP context
+        if (unlikely(!evpKeyPtr)) {
+            throw_java_ex(EX_NPE, "Null key pointer");
+        }
+        
+        EVP_PKEY* key = reinterpret_cast<EVP_PKEY*>(evpKeyPtr);
         EVP_PKEY_CTX_auto ctx = EVP_PKEY_CTX_auto::from(EVP_PKEY_CTX_new(key, NULL));
-        if (!ctx.isInitialized()) {
+        if (unlikely(!ctx.isInitialized())) {
             throw_java_ex(EX_RUNTIME_CRYPTO, "Failed to create EVP context");
         }
         
@@ -62,7 +77,7 @@ JNIEXPORT void JNICALL Java_com_amazon_corretto_crypto_provider_MLKemSpi_nativeE
         JBinaryBlob shared_secret(pEnv, nullptr, sharedSecretArray);
         
         size_t ciphertext_len = env->GetArrayLength(ciphertextArray);  
-        size_t shared_secret_len = 32;  // ML-KEM always produces 32 bytes
+        size_t shared_secret_len = MLKEM_SHARED_SECRET_SIZE;
         
         CHECK_OPENSSL(EVP_PKEY_encapsulate(ctx, ciphertext.get(), &ciphertext_len,
                                           shared_secret.get(), &shared_secret_len));
@@ -74,15 +89,20 @@ JNIEXPORT void JNICALL Java_com_amazon_corretto_crypto_provider_MLKemSpi_nativeE
 
 
 
-JNIEXPORT void JNICALL Java_com_amazon_corretto_crypto_provider_MLKemSpi_nativeDecapsulate(
+JNIEXPORT void JNICALL Java_com_amazon_corretto_crypto_provider_MlKemSpi_nativeDecapsulate(
     JNIEnv* pEnv, jclass, jlong evpKeyPtr, jbyteArray ciphertextArray, jbyteArray sharedSecretArray)
 {
     try {
         raii_env env(pEnv);
+        
+        if (unlikely(!evpKeyPtr)) {
+            throw_java_ex(EX_NPE, "Null key pointer");
+        }
+        
         EVP_PKEY* key = reinterpret_cast<EVP_PKEY*>(evpKeyPtr);
         
         EVP_PKEY_CTX_auto ctx = EVP_PKEY_CTX_auto::from(EVP_PKEY_CTX_new(key, NULL));
-        if (!ctx.isInitialized()) {
+        if (unlikely(!ctx.isInitialized())) {
             throw_java_ex(EX_RUNTIME_CRYPTO, "Failed to create EVP context");
         }
         
@@ -91,7 +111,7 @@ JNIEXPORT void JNICALL Java_com_amazon_corretto_crypto_provider_MLKemSpi_nativeD
         JBinaryBlob ciphertext(pEnv, nullptr, ciphertextArray);
         JBinaryBlob shared_secret(pEnv, nullptr, sharedSecretArray);
         
-        size_t shared_secret_len = 32;  // ML-KEM always produces 32 bytes
+        size_t shared_secret_len = MLKEM_SHARED_SECRET_SIZE;
         CHECK_OPENSSL(EVP_PKEY_decapsulate(ctx, shared_secret.get(), &shared_secret_len,
                                           ciphertext.get(), ciphertext_array_len));
         
@@ -99,5 +119,3 @@ JNIEXPORT void JNICALL Java_com_amazon_corretto_crypto_provider_MLKemSpi_nativeD
         ex.throw_to_java(pEnv);
     }
 }
-
-
