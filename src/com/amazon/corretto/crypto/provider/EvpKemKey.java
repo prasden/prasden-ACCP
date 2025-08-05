@@ -14,24 +14,24 @@ public abstract class EvpKemKey extends EvpKey {
     super(key, EvpKeyType.KEM, isPublicKey);
   }
 
-  public int getParameterSet(){
+  public int getParameterSet() {
     Integer result = parameterSet;
-    if(result == null){
-        synchronized (this) {
-            result = parameterSet;
-            if (result == null) {
-                result = use(ptr -> getParameterSet(ptr));  
-                parameterSet = result; 
-            }
+    if (result == null) {
+      synchronized (this) {
+        result = parameterSet;
+        if (result == null) {
+          // Call KemUtils instead of the non-existent native method
+          result = use(ptr -> KemUtils.nativeGetParameterSet(ptr));
+          parameterSet = result;
         }
+      }
     }
     return result;
-}
-
-  @Override 
-  public String getAlgorithm(){
-    return "ML-KEM" + getParameterSet(); 
   }
 
+  @Override
+  public String getAlgorithm() {
+    return "ML-KEM-" + getParameterSet();
+  }
 
 }

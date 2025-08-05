@@ -104,7 +104,8 @@ public abstract class MLKemSpi implements KEMSpi {
       if (from < 0 || from > to || to > KemUtils.SHARED_SECRET_SIZE) {
         throw new IndexOutOfBoundsException("Invalid range: from=" + from + ", to=" + to);
       }
-      if (!("ML-KEM".equals(algorithm))) {
+      // Accept "ML-KEM" or "Generic" (default when encapsulate() is called without parameters)
+      if (!("ML-KEM".equals(algorithm) || "Generic".equals(algorithm))) {
         throw new UnsupportedOperationException("Only ML-KEM algorithm is supported, got: " + algorithm);
       }
       if (from != 0 || to != KemUtils.SHARED_SECRET_SIZE) {

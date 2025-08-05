@@ -31,7 +31,7 @@ public final class KemUtils {
     public static final int MLKEM1024_SECRET_KEY_BYTES = 3168;
     public static final int MLKEM1024_CIPHERTEXT_BYTES = 1568;
 
-    private static native int nativeGetParameterSet(long keyPtr);
+    static native int nativeGetParameterSet(long keyPtr);
 
     
     /**
@@ -113,4 +113,3 @@ public final class KemUtils {
     }
 }
 }
-

@@ -70,7 +70,6 @@ public final class AmazonCorrettoCryptoProvider extends java.security.Provider {
   private final boolean shouldRegisterMLDSA;
   private final boolean shouldRegisterAesCfb;
   private final boolean shouldRegisterMLKEM;
-  
   private final Utils.NativeContextReleaseStrategy nativeContextReleaseStrategy;
 
   private transient SelfTestSuite selfTestSuite = new SelfTestSuite();
@@ -572,7 +571,8 @@ public final class AmazonCorrettoCryptoProvider extends java.security.Provider {
 
     this.shouldRegisterAesCfb = (!isFips() || isExperimentalFips());
 
-    this.shouldRegisterMLKEM = Utils.isKEMSupported() && (!isFips() || isExperimentalFips());
+    // TODO: register ML-KEM in ACCP once encoding/decoding is added for KEM keys in AWS-LC
+    this.shouldRegisterMLKEM = false;
 
     this.nativeContextReleaseStrategy = Utils.getNativeContextReleaseStrategyProperty();
 

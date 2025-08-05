@@ -25,7 +25,6 @@ import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-
 /** Miscellaneous utility methods. */
 final class Utils {
   static final int SHA1_CODE = 1;
@@ -223,27 +222,6 @@ final class Utils {
       default:
         throw new IllegalArgumentException("Unexpected key type: " + keyType);
     }
-  }
-
-  /**
-   * Checks if KEM API is supported in the current JDK version. 
-   * The KEM API is available in JDK 21+ and JDK 17+
-   */
-  static boolean isKEMSupported() {
-    int javaVersion = getJavaVersion();
-
-    if (javaVersion >= 21) {
-      return true;
-    }
-    if (javaVersion >= 17) {
-      try {
-        Class.forName("javax.crypto.KEM");
-        return true;
-      } catch (ClassNotFoundException e) {
-        return false;
-      }
-    }
-    return false;
   }
 
   static Key buildUnwrappedKey(final byte[] rawKey, final String algorithm, final int keyType)
