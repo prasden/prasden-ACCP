@@ -8,7 +8,7 @@ import java.security.KeyPairGeneratorSpi;
 import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
 
-public class MlKemGen extends KeyPairGeneratorSpi {
+class MlKemGen extends KeyPairGeneratorSpi {
   private final AmazonCorrettoCryptoProvider provider_;
   private int parameterSet = -1;
 

@@ -365,7 +365,6 @@ endif()
 if(INCLUDE_JDK17PLUS_DIR AND ((EXPERIMENTAL_FIPS OR (NOT FIPS))))
     set(C_SRC ${C_SRC} csrc/mlkem_gen.cpp csrc/mlkem_spi.cpp)
 endif()
-
 add_library(amazonCorrettoCryptoProvider SHARED ${C_SRC})
 
 add_custom_command(
