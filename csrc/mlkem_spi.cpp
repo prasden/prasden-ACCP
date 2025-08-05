@@ -12,8 +12,6 @@ using namespace AmazonCorrettoCryptoProvider;
 
 // ML-KEM constants
 #define MLKEM_SHARED_SECRET_SIZE 32
-
-// Ciphertext sizes for each parameter set
 #define MLKEM_512_CIPHERTEXT_SIZE  768
 #define MLKEM_768_CIPHERTEXT_SIZE  1088  
 #define MLKEM_1024_CIPHERTEXT_SIZE 1568
@@ -86,8 +84,6 @@ JNIEXPORT void JNICALL Java_com_amazon_corretto_crypto_provider_MlKemSpi_nativeE
         ex.throw_to_java(pEnv);
     }
 }
-
-
 
 JNIEXPORT void JNICALL Java_com_amazon_corretto_crypto_provider_MlKemSpi_nativeDecapsulate(
     JNIEnv* pEnv, jclass, jlong evpKeyPtr, jbyteArray ciphertextArray, jbyteArray sharedSecretArray)

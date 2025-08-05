@@ -31,5 +31,4 @@ public abstract class EvpKemKey extends EvpKey {
   public String getAlgorithm() {
     return "ML-KEM-" + getParameterSet();
   }
-
 }

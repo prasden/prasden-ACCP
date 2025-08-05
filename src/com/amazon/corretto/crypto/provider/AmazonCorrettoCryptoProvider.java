@@ -151,7 +151,7 @@ public final class AmazonCorrettoCryptoProvider extends java.security.Provider {
       addService("KeyPairGenerator", "ML-DSA-87", "MlDsaGen$MlDsaGen87");
     }
 
-    if (shouldRegisterMLKEM){
+    if (shouldRegisterMLKEM) {
       addService("KeyPairGenerator", "ML-KEM", "MlKemGen$MlKemGen768");
       addService("KeyPairGenerator", "ML-KEM-512", "MlKemGen$MlKemGen512");
       addService("KeyPairGenerator", "ML-KEM-768", "MlKemGen$MlKemGen768");
@@ -159,9 +159,9 @@ public final class AmazonCorrettoCryptoProvider extends java.security.Provider {
     }
 
     if (shouldRegisterMLKEM) {
-        addService("KEM", "ML-KEM-512", "MlKemSpi$MlKem512");
-        addService("KEM", "ML-KEM-768", "MlKemSpi$MlKem768"); 
-        addService("KEM", "ML-KEM-1024", "MlKemSpi$MlKem1024");
+      addService("KEM", "ML-KEM-512", "MlKemSpi$MlKem512");
+      addService("KEM", "ML-KEM-768", "MlKemSpi$MlKem768");
+      addService("KEM", "ML-KEM-1024", "MlKemSpi$MlKem1024");
     }
 
     addService("KeyGenerator", "AES", "SecretKeyGenerator", false);
@@ -571,7 +571,7 @@ public final class AmazonCorrettoCryptoProvider extends java.security.Provider {
 
     this.shouldRegisterAesCfb = (!isFips() || isExperimentalFips());
 
-    // TODO: register ML-KEM in ACCP once ASN.1 is added for KEM keys in AWS-LC
+    // TODO: register ML-KEM in ACCP once ASN.1 encoding is added for KEM keys in AWS-LC
     this.shouldRegisterMLKEM = false;
     this.nativeContextReleaseStrategy = Utils.getNativeContextReleaseStrategyProperty();
 

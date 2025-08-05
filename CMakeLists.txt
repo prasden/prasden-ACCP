@@ -362,7 +362,6 @@ if(EXPERIMENTAL_FIPS OR (NOT FIPS))
     set(C_SRC ${C_SRC} csrc/mldsa_gen.cpp)
 endif()
 
-# The javax.crypto.KEM API and KEM operations are supported on JDK 17/21+ targets
 if(INCLUDE_JDK17PLUS_DIR)
     set(C_SRC ${C_SRC} csrc/mlkem_gen.cpp csrc/mlkem_spi.cpp)
 endif()

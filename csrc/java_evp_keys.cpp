@@ -716,7 +716,6 @@ JNIEXPORT jbyteArray JNICALL Java_com_amazon_corretto_crypto_provider_EvpMlDsaPr
 }
 #endif // !defined(FIPS_BUILD) || defined(EXPERIMENTAL_FIPS_BUILD)
 
-
 /*
  * Class:     com_amazon_corretto_crypto_provider_EvpKemPrivateKey
  * Method:    getRawPrivateKey

@@ -2,19 +2,17 @@
 // SPDX-License-Identifier: Apache-2.0
 package com.amazon.corretto.crypto.provider;
 
-import com.amazon.corretto.crypto.provider.Loader;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
-import java.util.Arrays;
 import javax.crypto.DecapsulateException;
 import javax.crypto.KEM;
 import javax.crypto.KEMSpi;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import java.security.InvalidAlgorithmParameterException;
 
 abstract class MlKemSpi implements KEMSpi {
 
@@ -23,9 +21,11 @@ abstract class MlKemSpi implements KEMSpi {
   protected final int privateKeySize;
   protected final int ciphertextSize;
 
-  private static native void nativeEncapsulate(long evpKeyPtr, byte[] ciphertext, byte[] sharedSecret);
+  private static native void nativeEncapsulate(
+      long evpKeyPtr, byte[] ciphertext, byte[] sharedSecret);
 
-  private static native void nativeDecapsulate(long evpKeyPtr, byte[] ciphertext, byte[] sharedSecret);
+  private static native void nativeDecapsulate(
+      long evpKeyPtr, byte[] ciphertext, byte[] sharedSecret);
 
   protected MlKemSpi(int parameterSet) {
     Loader.checkNativeLibraryAvailability();
@@ -44,7 +44,8 @@ abstract class MlKemSpi implements KEMSpi {
       throw new InvalidKeyException("Public key cannot be null");
     }
     if (secureRandom != null) {
-      throw new InvalidAlgorithmParameterException("SecureRandom must be null - AWS-LC handles its own randomness");
+      throw new InvalidAlgorithmParameterException(
+          "SecureRandom must be null - AWS-LC handles its own randomness");
     }
     if (!(publicKey instanceof EvpKemPublicKey)) {
       throw new InvalidKeyException("Unsupported public key type");
@@ -105,23 +106,23 @@ abstract class MlKemSpi implements KEMSpi {
         throw new IndexOutOfBoundsException("Invalid range: from=" + from + ", to=" + to);
       }
       if (!("ML-KEM".equals(algorithm) || "Generic".equals(algorithm))) {
-        throw new UnsupportedOperationException("Only ML-KEM algorithm is supported, got: " + algorithm);
+        throw new UnsupportedOperationException(
+            "Only ML-KEM algorithm is supported, got: " + algorithm);
       }
       if (from != 0 || to != KemUtils.SHARED_SECRET_SIZE) {
         throw new UnsupportedOperationException("Only full secret size is supported");
       }
 
-      return publicKey.use(ptr -> {
-        byte[] ciphertext = new byte[ciphertextSize];
-        // shared secret size of ML-KEM is always 32 bytes regardless of parameter set
-        byte[] sharedSecret = new byte[KemUtils.SHARED_SECRET_SIZE];
-       
-        nativeEncapsulate(ptr, ciphertext, sharedSecret);
-        return new KEM.Encapsulated(
-            new SecretKeySpec(sharedSecret, algorithm),
-            ciphertext,
-            null);
-      });
+      return publicKey.use(
+          ptr -> {
+            byte[] ciphertext = new byte[ciphertextSize];
+            // shared secret size of ML-KEM is always 32 bytes regardless of parameter set
+            byte[] sharedSecret = new byte[KemUtils.SHARED_SECRET_SIZE];
+
+            nativeEncapsulate(ptr, ciphertext, sharedSecret);
+            return new KEM.Encapsulated(
+                new SecretKeySpec(sharedSecret, algorithm), ciphertext, null);
+          });
     }
 
     @Override
@@ -153,13 +154,14 @@ abstract class MlKemSpi implements KEMSpi {
       if (from < 0 || from > to || to > KemUtils.SHARED_SECRET_SIZE) {
         throw new IndexOutOfBoundsException("Invalid range: from=" + from + ", to=" + to);
       }
-    
-      return privateKey.use(ptr -> {
-        // shared secret size of ML-KEM is always 32 bytes regardless of parameter set
-        byte[] sharedSecret = new byte[KemUtils.SHARED_SECRET_SIZE];
-        nativeDecapsulate(ptr, encapsulation, sharedSecret);
-        return new SecretKeySpec(sharedSecret, algorithm);
-      });
+
+      return privateKey.use(
+          ptr -> {
+            // shared secret size of ML-KEM is always 32 bytes regardless of parameter set
+            byte[] sharedSecret = new byte[KemUtils.SHARED_SECRET_SIZE];
+            nativeDecapsulate(ptr, encapsulation, sharedSecret);
+            return new SecretKeySpec(sharedSecret, algorithm);
+          });
     }
 
     @Override
