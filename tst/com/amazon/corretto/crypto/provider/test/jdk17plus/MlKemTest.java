@@ -186,21 +186,17 @@ public class MlKemTest {
 
   @Test
   public void testBouncyCastleKeyByteComparison() throws Exception {
-    // Test key byte size comparison between ACCP and BouncyCastle
     for (String paramSet : new String[] {"ML-KEM-512", "ML-KEM-768", "ML-KEM-1024"}) {
       try {
-        // Generate ACCP keys
         KeyPair accpPair =
             KeyPairGenerator.getInstance(paramSet, NATIVE_PROVIDER).generateKeyPair();
         EvpKemPublicKey accpPub = (EvpKemPublicKey) accpPair.getPublic();
         EvpKemPrivateKey accpPriv = (EvpKemPrivateKey) accpPair.getPrivate();
 
-        // Get ACCP raw key bytes
         byte[] accpPubRaw = accpPub.getRawBytes();
         byte[] accpPrivRaw = accpPriv.getRawBytes();
 
         try {
-          // Generate BC keys
           KeyPair bcPair =
               KeyPairGenerator.getInstance(paramSet, TestUtil.BC_PROVIDER).generateKeyPair();
 
@@ -236,7 +232,7 @@ public class MlKemTest {
       }
     }
 
-    // Test always passes - this is informational about ASN.1 encoding requirements
+    // Test always passes, this is to compare ACCP keys and BC keys to learn about ASN.1 encoding differences
     assertTrue(
         true, "Key byte comparison completed - check output for ASN.1 encoding requirements");
   }
@@ -271,7 +267,7 @@ public class MlKemTest {
         });
 
     KEM.Decapsulator decapsulator = kem.newDecapsulator(pair.getPrivate(), paramSpec);
-    byte[] invalidCiphertext = new byte[10]; // Wrong size
+    byte[] invalidCiphertext = new byte[10]; 
 
     assertThrows(
         Exception.class,
@@ -323,7 +319,6 @@ public class MlKemTest {
 
   @Test
   public void testSharedSecretConsistency() throws Exception {
-    // Test that multiple encapsulations produce different ciphertexts but valid shared secrets
     for (String paramSet : new String[] {"ML-KEM-512", "ML-KEM-768", "ML-KEM-1024"}) {
       KeyPair pair = KeyPairGenerator.getInstance(paramSet, NATIVE_PROVIDER).generateKeyPair();
       KEM kem = KEM.getInstance(paramSet, NATIVE_PROVIDER);
@@ -352,15 +347,13 @@ public class MlKemTest {
 
   @Test
   public void testMultipleKeyPairs() throws Exception {
-    // Test that different key pairs produce different results
     for (String paramSet : new String[] {"ML-KEM-512", "ML-KEM-768", "ML-KEM-1024"}) {
       KeyPairGenerator keyGen = KeyPairGenerator.getInstance(paramSet, NATIVE_PROVIDER);
 
       KeyPair pair1 = keyGen.generateKeyPair();
       KeyPair pair2 = keyGen.generateKeyPair();
 
-      // Avoid direct key comparison which triggers getEncoded() and ASN.1 encoding
-      // Instead verify keys are different by checking they're not the same object
+      // avoid direct key as getEncoded() and ASN.1 encoding is not implemented for KEM keys
       assertTrue(pair1.getPublic() != pair2.getPublic(), "Public keys should be different objects");
       assertTrue(
           pair1.getPrivate() != pair2.getPrivate(), "Private keys should be different objects");
