@@ -4,6 +4,7 @@ package com.amazon.corretto.crypto.provider.test;
 
 import static com.amazon.corretto.crypto.provider.test.TestUtil.NATIVE_PROVIDER;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -481,8 +482,25 @@ public class EdDSATest {
     TestUtil.assertThrows(NullPointerException.class, () -> jceSig.update((byte[]) null));
     // Test with null signature
     jceSig.initVerify(keyPair.getPublic());
-    assertFalse(jceSig.verify(null));
-
+    try {
+      boolean result = jceSig.verify(null);
+      // Acc to the Signature.verify() interface, if anything is wrong with the signature the
+      // implementation should throw a SignatureException, which should ideally apply for the case
+      // of `null` signature as well.
+      // https://github.com/openjdk/jdk/blob/jdk-17%2B35/src/java.base/share/classes/java/security/Signature.java#L782-L786
+      // But until JDK 20, the sun.security.ec.ed.EdDSASignature implementation, skipped signature
+      // verification and returned a `false` instead, when its `message` object was null (default).
+      // https://github.com/openjdk/jdk/blob/jdk-20%2B35/src/jdk.crypto.ec/share/classes/sun/security/ec/ed/EdDSASignature.java#L213-L215
+      // Bug report: https://bugs.openjdk.org/browse/JDK-8300399
+      assertFalse(result);
+    } catch (SignatureException e) {
+      // In JDK 21, the implementation was fixed to perform verification for empty (null) message
+      // https://github.com/openjdk/jdk/commit/b317658d69a477df04ded3cc2e107970f8a6e20d
+      // and thereby comply with Signature.verify() interface to throw SignatureException for a
+      // null signature
+      // https://github.com/openjdk/jdk/blob/jdk-21%2B35/src/jdk.crypto.ec/share/classes/sun/security/ec/ed/EdDSASignature.java#L213-L215
+      assertEquals("signature was null", e.getMessage());
+    }
     // Test BouncyCastle behavior
     KeyPair keyPair2 = bcGen.generateKeyPair();
     Signature bcSig = Signature.getInstance("Ed25519", BOUNCYCASTLE_PROVIDER);
