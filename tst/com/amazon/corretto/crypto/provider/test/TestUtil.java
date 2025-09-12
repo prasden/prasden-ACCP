@@ -40,6 +40,7 @@ import org.bouncycastle.crypto.digests.SHA224Digest;
 import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.crypto.digests.SHA384Digest;
 import org.bouncycastle.crypto.digests.SHA512Digest;
+import org.bouncycastle.jcajce.spec.MLKEMParameterSpec;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.Assumptions;
 
@@ -54,6 +55,8 @@ public class TestUtil {
    * "READ_WRITE" lock.
    */
   public static final String RESOURCE_GLOBAL = "GLOBAL_TEST_LOCK";
+
+  public static final int JAVA_VERSION = getJavaVersion();
 
   static final byte[] EMPTY_ARRAY = new byte[0];
 
@@ -445,7 +448,7 @@ public class TestUtil {
         String.format("Required version %s, Actual version %s", minVersion, providerVersion));
   }
 
-  public static int getJavaVersion() {
+  private static int getJavaVersion() {
     final String[] parts = System.getProperty("java.specification.version").split("\\.");
     if (parts[0].equals("1")) {
       return Integer.parseInt(parts[1]);
@@ -454,7 +457,7 @@ public class TestUtil {
   }
 
   public static void assumeMinimumJavaVersion(int minVersion) {
-    Assumptions.assumeTrue(getJavaVersion() >= minVersion);
+    Assumptions.assumeTrue(JAVA_VERSION >= minVersion);
   }
 
   public static synchronized Provider[] saveProviders() {
@@ -820,6 +823,20 @@ public class TestUtil {
       return ascendingPattern(inputLen);
     }
     return constantPattern(inputLen, choice);
+  }
+
+  // Map ACCP parameter set names to BouncyCastle MLKEMParameterSpec constants
+  static MLKEMParameterSpec getMlKemParamSpec(String paramSet) {
+    switch (paramSet) {
+      case "ML-KEM-512":
+        return MLKEMParameterSpec.ml_kem_512;
+      case "ML-KEM-768":
+        return MLKEMParameterSpec.ml_kem_768;
+      case "ML-KEM-1024":
+        return MLKEMParameterSpec.ml_kem_1024;
+      default:
+        throw new IllegalArgumentException("Unknown parameter set: " + paramSet);
+    }
   }
 
   static Digest bcDigest(final String digest) {

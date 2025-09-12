@@ -43,7 +43,7 @@ public class AesKwp {
   public void setup() throws Exception {
     BenchmarkUtils.setupProvider(provider);
     kek = new SecretKeySpec(BenchmarkUtils.getRandBytes(kekBits / 8), "AES");
-    // Bouncy Castle and SunJCE have wierd names for this...
+    // Bouncy Castle and SunJCE have weird names for this...
     String algorithm = "AES/KWP/NoPadding";
     if ("BC".equals(provider)) {
       algorithm = "AESKWP";
